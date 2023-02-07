@@ -1,0 +1,2010 @@
+---
+title: 'Mineria de dades: PRA2 - Projecte de mineria de dades'
+author: "Autor: Marina Arias Queralt"
+date: "17 de gener 2023"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    includes:
+      in_header: 05.584-PEC-header.html
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+******
+## PRIMERA PART DE LA PRÀCTICA (pràctica 1)
+******
+
+### Selecció del joc de dades.
+
+L'objectiu principal d'aquesta pràctica és plantejar un problema d'analítica de dades a partir d'un joc de dades que seleccionem i posteriorment estudiar-lo mitjançant l'aplicació d'algoritmes supervisats i no supervisats. Consegüentment, no es pot seleccionar qualsevol joc de dades, cal que aquest tingui la suficient complexitat perquè pugui aplicar els algoritmes de classificació, regressió i clusterització corresponents.
+
+Seguidament, procediré a explicar el meu procés de recerca a través de les diferents plataformes que oferien jocs de dades fins que he seleccionat el joc de dades definitiu.
+
+Inicialment, he centrat la meva recerca en els jocs de dades procedents de les plataformes web de dades obertes, iniciant-la a la plataforma de l'ajuntament de Barcelona.
+Després d'estar investigant diversos jocs de dades que oferia la plataforma, m'he adonat que aquest no presentaven un format que s'adeqüés a les característiques que buscava per aquesta pràctica. Això és a causa del fet que la majoria d'ells constaven de poques variables i gran part d'aquestes eren de tipus categòriques.
+He de recalcar que hi ha hagut un cas en què he trobat un joc de dades que si tenia els requisits que buscava (Joc de dades de qualitat d'aire de Barcelona) però finalment l'he descartat perquè no era capaç de comprendre que significava cadascuna de les variables que el formaven.
+
+Com no he trobat un joc de dades en aquesta plataforma que em servis, he procedit a investigar la resta de plataformes de dades obertes i m'he trobat amb quasi la mateixa problemàtica en la majoria de jocs de dades que he estudiat.
+En alguns casos, fins i tot, els jocs de dades presenten un excés de valors nuls. Aquest fet ha provocat que els descartes directament, ja que no presentaven la qualitat suficient perquè jo pugui aplicar de forma efectiva els algoritmes demanats a la segona part de la pràctica. 
+
+A continuació, he redirigit la meva recerca i m'he centrat a buscar jocs de dades que ja estiguessin plantejats per aprenentatge automàtic i investigació. Entre tots els jocs de dades disponibles he trobat tres que m'han resultat especialment interessants.
+
+El primer de tots és un joc de dades que orientat a predir atacs de cor. Aquest joc de dades disposa de suficients variables i consta de registres de bona qualitat. Així i tot, l'he descartat perquè és un joc de dades que molts usuaris han utilitzat prèviament i han publicat els seus estudis a internet on s'aplicaven gran part de les tècniques que he d'aplicar.
+El segon és un joc de dades de reaccions metabòliques KEGG. Aquest disposa de les característiques que m'interessen, però l'he descartat perquè els meus coneixements respecte al negoci són insuficients.
+El tercer joc de dades i el que he seleccionat per aquesta pràctica, és un joc de dades orientat a predir la supervivència dels pacients que han estat ingressats a l'hospital. Aquest joc de dades prové de la plataforma *Kaggle datasets*.
+
++ URL del Joc de dades: https://www.kaggle.com/datasets/mitishaagarwal/patient
++ Nom del jocs de dades: dataset.csv
+
+Podem veure que aquest cas també es tracta d'un joc de dades que s'ha utilitzat bastant, però com que consta de moltes variables diferents això em permet plantejar un estudi del joc des de molts punts de vista diferent que no s'hagin fet anteriorment. És per aquest motiu i perquè la temàtica em resulta interessant, que he elegit aquest joc de dades.
+
+A més a més es un joc de dades al qual puc aplicar diversos processos de codificació i realitzar un estudi PCA que hem permeti reduir el nombre de dimensions a utilitzar.
+
+### Objectiu analític establert.
+
+El principal objectiu d'un hospital és curar als seus pacients. És per això que resulta de vital importància poder determinar quins pacients tenen més possibilitats de morir per tal d'oferir-los una atenció medica especialitzada, evitant així la seva defunció.
+
+A partir d'aquest joc de dades buscaré determinar per quines condicions un pacient sobreviu i per quines no ho fa. Per tant, m'enfronto a un problema de classificació, on a partir de saber en quins casos els pacients han sobreviscut i per quins no, determinaré si per la presència de determinades malalties prèvies o si per certs valors mesurats en el pacient estan sota observació en l'hospital, aquest pacient presenta major possibilitat de morir o no.
+
+Veig que el joc de dades disposa de dos tipus de pacient: supervivents i morts. En conseqüència, els models de classificació que generaré tant per algoritmes supervisats com no supervisats serviran per classificar segons el conjunt de variables seleccionades si un pacient te més probabilitats de correspondre's a un cas o en l'altre al final de la seva estada hospitalària.
+
+### Exploració del conjunt de dades
+
+Primer de tot començaré realitzant un anàlisis exploratòria del joc de dades.
+
+```{r}
+path = 'dataset.CSV'
+patient_survival <- read.csv(path, row.names=NULL)
+```
+
+Visualitzo l'estructura que té el set de dades
+
+```{r}
+structure_file = str(patient_survival)
+```
+
+Disposo d'un joc de dades que té un total de **85** variables i **91.713** observacions. Encara que a primeres el nombre de variables seleccionat sigui elevat, no treballaré amb totes elles, posteriorment seleccionaré les que em resulten d'interès.
+
+A continuació construiré un diccionari que definirà cadascuna de les variables que formen el meu joc de dades. Per tal de crear aquest diccionari, he utilitzat la documentació auxiliar disponible a la plataforma Keggel.
+
+**VARIABLES D'IDENTIFICADORS**
+
++ **encounter_id** identificador del pacient respecte a la unitat de l'hospital on està situat
++ **patient_id** identificador del pacient
++ **hospital_id** identificador hospital
+
+**VARIABLES D'INFORMACIÓ BÀSICA DEL PACIENT**
+
++ **age** edat del pacient
++ **bmi** índex de massa corporal del pacient
++ **elective_surgery** Si el pacient va ser admès a l'hospital per una operació cirurgia electiva
++ **ethnicity** ètnia del pacient
++ **gender** gènere del pacient
++ **height** altura del pacient
++ **weight** pes del pacient
+
+**VARIABLES D'INFORMACIÓ DEL PACIENT EN LA UNITAT UCI**
+
++ **icu_admit_source** localització del pacient abans de ser admès a UCI
++ **icu_id** identificador de l'UCI on ha sigut admès el pacient
++ **icu_stay_type** El tipus d'estada que va fer el pacient a UCI
++ **icu_type** Tipus de cures que van oferir-se al pacient a UCI
++ **pre_icu_los_days** quantitat de dies entre que el pacient va ser admès a l'hospital i quan va ser admès a UCI
+
+**VARIABLES DEL PROGRAMA APACHE**
+
++ **apache_2_diagnosis** diagnosis segons APACHE II per l'admissió del pacient a UCI
++ **apache_3j_diagnosis** subdiagnosis d'APACHE III-J que descriu de forma més precisa la raó d'admissió del pacient a UCI.
++ **apache_post_operative** Estatus operatiu del pacient segons APACHE. On 1: postoperació i 0: no-operat.
++ **arf_apache** Indicador de si el pacient presenta insuficiència renal aguda durant les primeres 24 h en la unitat. Es defineix com diüresis de 24 h<410 ml
++ **gcs_eyes_apache** component d'obertura ocular de l'escala de Coma de Glasgow del pacient mesurat durant les primeres 24 h que dona lloc a la puntuació APACHE III més elevada.
++ **gcs_motor_apache** component motor de l'escala de coma de Glasgow del pacient mesurat durant les primeres 24 h que dona lloc a la puntuació APACHE III més elevada.
++ **gcs_unable_apache** indicador de si s'ha pogut aplicar l'escala de Coma de Glasgow al pacient depenent de si es trobava sedat. On 0: no s'ha aplicat i 1: s'ha aplicat.
++ **gcs_verbal_apache** component verbal de l'escala de coma de Glasgow del pacient mesurat durant les primeres 24 h que dona lloc a la puntuació APACHE III més elevada.
++ **heart_rate_apache** freqüència cardíaca del pacient mesurada durant les primeres 24 h que dona lloc a la puntuació APACHE III més elevada.
++ **intubated_apache** indicador de si el pacient estava intubat en realitzar la gasometria arterial de puntuació màxima posteriorment utilitzada per puntuar l'oxigenació del pacient.
++ **map_apache** pressió arterial mitjana mesurada del pacient durant les primeres 24 h que dona lloc a la puntuació APACHE III més elevada.
++ **resprate_apache** freqüència respiratòria del pacient mesurada durant les primeres 24 h que dona lloc a la puntuació APACHE III més elevada
++ **temp_apache** temperatura del pacient mesurada durant les primeres 24 h que dona lloc a la puntuació APACHE III més elevada
++ **ventilated_apache** indicador de si el pacient es trobava ventilat invasivament durant la realització de la gasometria arterial amb puntuació més alta posteriorment feta servir per puntuar l'oxigenació. S'inclou qualsevol model de ventilació amb pressió positiva a través d'un circuit connectat a un tub endotraqueal o una traqueostomia
++ **apache_3j_bodysystem** grup de diagnosis a l'ingres per APACHE III
++ **apache_2_bodysystem** grup de diagnosis a l'ingres per APACHE II
++ **apache_4a_hospital_death_prob** predicció probabilística APACHE IVa de la mortalitat intrahospitalària del pacient emprant la puntuació APACHE III, altres covariables, i el diagnòstic com a referència
++ **apache_4a_icu_death_prob** predicció probabilística APACHE IVa de la mortalitat en l'UCI del pacient utilitzant la puntuació APACHE III, altres covariables, i el diagnòstic com a referència
++ **X** component nul
+
+**VARIABLES MESURES DEL PACIENT DURANT LES PRIMERES 24 HORES DINS LA UNITAT**
+
++ **d1_diasbp_max** pressió arterial diastòlica màxima del pacient mesurada de forma invasiva o no invasiva.
++ **d1_diasbp_min** pressió arterial diastòlica mínima del pacient mesurada de forma invasiva o no invasiva.
++ **d1_diasbp_noninvasive_max** pressió arterial diastòlica màxima del pacient mesurada de forma no invasiva.
++ **d1_diasbp_noninvasive_min** pressió arterial diastòlica mínima del pacient mesurada de forma no invasiva.
++ **d1_heartrate_max** freqüència cardíaca màxima del pacient.
++ **d1_heartrate_min** freqüència cardíaca mínima del pacient.
++ **d1_mbp_max** pressió arterial mitja màxima del pacient mesurada de forma invasiva o no invasiva.
++ **d1_mbp_min** pressió arterial mitja mínima del pacient mesurada de forma invasiva o no invasiva.
++ **d1_mbp_noninvasive_max** pressió arterial mitja màxima del pacient mesurada de forma no invasiva.
++ **d1_mbp_noninvasive_min** pressió arterial mitja mínima del pacient mesurada de forma no invasiva.
++ **d1_resprate_max** freqüència respiratòria màxima del pacient.
++ **d1_resprate_min** freqüència respiratòria mínima del pacient.
++ **d1_spo2_max** saturació perifèrica d'oxigen màxima del pacient.
++ **d1_spo2_min** saturació perifèrica d'oxigen mínima del pacient.
++ **d1_sysbp_max** pressió arterial sistòlica màxima del pacient mesurada de forma invasiva o no invasiva.
++ **d1_sysbp_min** pressió arterial sistòlica mínima del pacient mesurada de forma invasiva o no invasiva.
++ **d1_sysbp_noninvasive_max** pressió arterial sistòlica màxima del pacient mesurada de forma no invasiva.
++ **d1_sysbp_noninvasive_min** pressió arterial sistòlica mínima del pacient mesurada de forma no invasiva.
++ **d1_temp_max** temperatura màxima del pacient.
++ **d1_temp_min** temperatura mínima del pacient.
++ **d1_glucose_max** concentració de glucosa màxima del pacient en sèrum o plasma.
++ **d1_glucose_min** concentració de glucosa mínima del pacient en sèrum o plasma.
++ **d1_potassium_max** concentració de potassi màxima del pacient en sèrum o plasma.
++ **d1_potassium_min** concentració de potassi mínima del pacient en sèrum o plasma.
+
+**VARIABLES DE MESURES DEL PACIENT DURANT LA PRIMERA HORA DINS LA UNITAT**
+
++ **h1_diasbp_max** pressió arterial diastòlica màxima del pacient mesurada de forma invasiva o no invasiva.
++ **h1_diasbp_min** pressió arterial diastòlica mínima del pacient mesurada de forma invasiva o no invasiva.
++ **h1_diasbp_noninvasive_max** pressió arterial diastòlica màxima del pacient mesurada de forma no invasiva.
++ **h1_diasbp_noninvasive_min** pressió arterial diastòlica mínima del pacient mesurada de forma no invasiva.
++ **h1_heartrate_max** freqüència cardíaca màxima del pacient.
++ **h1_heartrate_min** freqüència cardíaca mínima del pacient.
++ **h1_mbp_max** pressió arterial mitja màxima del pacient mesurada de forma invasiva o no invasiva.
++ **h1_mbp_min** pressió arterial mitja mínima del pacient mesurada de forma invasiva o no invasiva.
++ **h1_mbp_noninvasive_max** pressió arterial mitja màxima del pacient mesurada de forma no invasiva.
++ **h1_mbp_noninvasive_min** pressió arterial mitja mínima del pacient mesurada de forma no invasiva.
++ **h1_resprate_max** freqüència respiratòria màxima del pacient.
++ **h1_resprate_min** freqüència respiratòria mínima del pacient.
++ **h1_spo2_max** saturació perifèrica d'oxigen màxima del pacient.
++ **h1_spo2_min** saturació perifèrica d'oxigen mínima del pacient.
++ **h1_sysbp_max** pressió arterial sistòlica màxima del pacient mesurada de forma invasiva o no invasiva.
++ **h1_sysbp_min** pressió arterial sistòlica mínima del pacient mesurada de forma invasiva o no invasiva.
++ **h1_sysbp_noninvasive_max** pressió arterial sistòlica màxima del pacient mesurada de forma no invasiva.
++ **h1_sysbp_noninvasive_min** pressió arterial sistòlica mínima del pacient mesurada de forma no invasiva.
+
+**VARIABLES DE MALALTIES DIAGNOSTICADES DEL PACIENT PRÈVIAMENT AL INGRÉS**
+
++ **aids** Indicador de si el pacient se li ha diagnosticat síndrome d'inmunodeficiencia adquirida (SIDA) (no sols seropositius). On 0: no diagnosticat, 1: diagnosicat.
++ **cirrhosis** Indicador de si el pacient se li ha detectat antecedents de consum excessiu d'alcohol amb hipertensió portal i varius, o altres causes de cirrosis com evidencia d'hipertensió portal i varius, o cirrosis demostrades per biòpsia. No aplicable per pacients amb trasplantament de fetge en funcionament.
+On 0: no detectat, 1: detectat
++ **diabetes_mellitus** Indicador de si el pacient se li ha diagnosticat diabetis que requereix medicació, sigui juvenil o adulta. On 0: no diagnosticat, 1: diagnosicat.
++ **hepatic_failure** Indicador de si el pacient se li ha diagnosticat cirrosis i complicacions addicionals com icterícia i ascitis, hemorràgia digestiva alta, encefalopatia hepàtica o coma. On 0: no diagnosticat, 1: diagnosicat.
++ **immunosuppression** Indicador de si el pacient presenta un sistema immunitari suprimit durant els sis mesos anteriors a l'ingres a UCI per les següents causes: radioteràpia, quimioteràpia, ús de fàrmacs immunosupressors no citotòxics, dosis altes de corticoides (almenys 0,3 mg/dia de metilprednisolona o equivalents durant sis mesos mínim). On 0: sistema immune sa, 1: sistema immunodeprimit.
++ **leukemia** Indicador de si el pacient se li ha diagnosticat de leucèmia mielògena aguda o crònica, leucèmia limfocítica aguda o crònica o mieloma múltiple. On 0: no diagnosticat, 1: diagnosicat.
++ **lymphoma** Indicador de si el pacient se li ha diagnosticat un limfoma no Hodgkin. On 0: no diagnosticat, 1: diagnosicat.
++ **solid_tumor_with_metastasis** Indicador de si el pacient se li ha diagnosticat qualsevol carcinoma de tumor sòlid que tingui (inclòs melanoma maligne).
+On 0: no diagnosticat, 1: diagnosicat.
+
+**VARIABLE MORTALITAT DEL PACIENT**
+
++ **hospital_death** Indicador si el pacient ha mort o no durant l'hospitalització. On 0: viu, 1: mort.
+
+### Preprocessament i gestió de característiques
+
+Primer de tot seleccionaré les variables que vull utilitzar per dur a terme la pràctica. Al llarg del preprocessament és probable que el nombre de variables disminueixi si veig que alguna no aporta informació que ajudi a complir l'objectiu principal del meu anàlisis.
+
+```{r}
+#select variables of interest
+reduced_df_patient_survival = patient_survival[,c("patient_id",
+                                                  "age",
+                                                  "bmi",
+                                                  "ethnicity",
+                                                  "gender",
+                                                  "d1_diasbp_max", 
+                                                  "d1_diasbp_min",
+                                                  "d1_heartrate_max",
+                                                  "d1_heartrate_min",
+                                                  "d1_mbp_max",
+                                                  "d1_mbp_min",
+                                                  "d1_resprate_max",
+                                                  "d1_resprate_min",
+                                                  "d1_spo2_max",
+                                                  "d1_spo2_min",
+                                                  "d1_sysbp_max",
+                                                  "d1_sysbp_min",
+                                                  "d1_temp_max",
+                                                  "d1_temp_min",
+                                                  "d1_glucose_max",
+                                                  "d1_glucose_min",
+                                                  "d1_potassium_max",
+                                                  "d1_potassium_min",
+                                                  "cirrhosis",
+                                                  "lymphoma",
+                                                  "leukemia",
+                                                  "aids",
+                                                  "immunosuppression",
+                                                  "hepatic_failure",
+                                                  "solid_tumor_with_metastasis",
+                                                  "diabetes_mellitus",
+                                                  "hospital_death")]
+```
+
+#### Neteja
+
+Tot seguit detectaré els possibles valors nuls del joc de dades.
+
+```{r}
+print('NA values from patient_survival.csv')
+colSums(is.na(reduced_df_patient_survival))
+```
+
+Si analitzo el joc de dades reduit respecte els valors nuls,Vec que hi ha varies variables que presenten valors nuls.
+
+Primer em centraré per aquelles variables que determinen si un pacient té una malaltia o no. Consideraré que en cas de detectar un valor nul, el pacient no consta d'aquesta malaltia. Dono per suposat que si el pacient tingués diagnosticada alguna de les malalties que s'especifiquen en aquest joc de dades, si o si constaria en el sistema informàtic d'on prové aquest set de dades.
+
+Després em centraré en les variables que es corresponen a les mesures realitzades als pacients durant les primeres 24 h d'ingrés a la unitat. En aquest cas els valors nuls els ompliré amb la mitjana de cadascuna de les variables on es corresponguin.
+
+
+```{r}
+print('Empty values from patient_survival.csv')
+colSums(reduced_df_patient_survival=="")
+```
+
+Si analitzo el joc de dades respecte a els valors en blanc, puc observar que quasi no en tenim. Sols en detectem en la variable 'ethnicity' i 'gender'. 
+
+Un cop he visualitzat quins son els els valors nuls o en blanc , procedeixo a arreglar-ho.
+
+Si visualitzo els resultats anteriors veig que tant les columnes 'gender','age', 'BMI' i 'ethnicity' presenten valors en blanc i nuls que poden ser menyspreats si tenim en compte que un cop eliminats igualment disposarem d'una quantitat enorme de registres per analitzar. És per aquest motiu que he procedit directament a eliminar els registres que no disposen de valors en aquestes quatre columnes.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#import libraries
+if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
+if (!require('dplyr')) install.packages('dplyr'); library('dplyr')
+if (!require('Rmisc')) install.packages('Rmisc'); library('Rmisc')
+if (!require('xfun')) install.packages('xfun'); library('xfun')
+if (!require("corrplot")) install.packages("corrplot"); library("corrplot")
+if (!require('factoextra')) install.packages('factoextra'); library('factoextra')
+if (!require('arules')) install.packages('arules'); library('arules')
+if (!require('caret')) install.packages('caret'); library('caret')
+if (!require('ggpubr')) install.packages('ggpubr'); library('ggpubr')
+if (!require('grid')) install.packages('grid'); library('grid')
+if (!require('gridExtra')) install.packages('gridExtra'); library('gridExtra')
+if (!require('C50')) install.packages('C50'); library('C50')
+if (!require('DescTools')) install.packages('DescTools'); library('DescTools')
+if (!require('randomForest')) install.packages('randomForest'); library('randomForest')
+if (!require('iml')) install.packages('iml'); library('iml')
+if (!require('amap')) install.packages('amap'); library('amap')
+if (!require('dbscan')) install.packages('dbscan'); library('dbscan')
+if (!require('cluster')) install.packages('cluster'); library('cluster')
+```
+
+```{r}
+#eliminate null and empty values
+reduced_df_patient_survival <- reduced_df_patient_survival[!(reduced_df_patient_survival$gender=="" | 
+                                                               reduced_df_patient_survival$ethnicity=="" |
+                                                               is.na(reduced_df_patient_survival$age) | 
+                                                               is.na(reduced_df_patient_survival$bmi)),] 
+```
+
+A continuació gestionaré valors nuls de les variables que indican la presència d'una malaltia. Es dona per suposat que un valor nul en aquest cas indica que no hi ha presència de la malaltia, ja que no sols hi ha més probabilitat que un pacient no tingui una malaltia especifica del fet que tingui la malaltia, sinó que seria estrany que en cas que tingués la malaltia no s'indiqués en el programa informàtic.
+```{r}
+#replace null values by 0
+reduced_df_patient_survival <- mutate_at(reduced_df_patient_survival,
+                                         c("cirrhosis",
+                                           "lymphoma",
+                                           "leukemia",
+                                           "aids",
+                                           "immunosuppression",
+                                           "hepatic_failure",
+                                           "solid_tumor_with_metastasis",
+                                           "diabetes_mellitus"), 
+                                         ~replace(., is.na(.), 0))
+```
+
+Finalment, arreglo els valors nuls de les variables que es corresponen a les mesures realitzades en els pacients durant les primeres 24 h. En aquest cas substituiré aquests valors nuls per la mitjana dels valors que contenen la columna. Això és pel fet que són variables que normalment tenen valors dins d'un rang determinat no gaire gran, a excepció que el pacient presenti alguna malaltia especifica que alteri aquest component.
+
+```{r}
+#select the variables of patient measures for the first 24 hours
+hospital_mesurements_colnames = colnames(reduced_df_patient_survival[,c(6:29)])
+
+#replace null values by the mean
+for(i in hospital_mesurements_colnames)
+    reduced_df_patient_survival[,i][is.na(reduced_df_patient_survival[,i])] <- mean(reduced_df_patient_survival[,i], na.rm = TRUE)
+```
+
+Un cop netejades les dades de possibles valors nuls o en blanc i seleccionades les variables que ens interessen, obtinc el joc de dades que utilitzaré per a la fase de visualització.
+```{r}
+#structure of the data set after cleaning
+structure_clean_df = str(reduced_df_patient_survival)
+```
+
+Podem observar que per ara disposo d'un total de **32** variables i **83.056** registres.
+
+
+### Visualització de les dades
+
+El primer pas que realitzaré és comprovar les característiques que presenten els valors de les variables a estudiar.
+```{r}
+#dataframe characteristics
+summary(reduced_df_patient_survival)
+```
+
+Segon, veig que l'edat mínima disponible en el set de dades és de setze anys. En principi aquest fet no representaria cap problema, però com que m'interessa fer una codificació respecte als valors BMI he decidit filtrar l'edat establint el mínim a divuit anys.
+El motiu d'aquest filtratge és que per adolescents, els indicadors de pes segons el rang de valors BMI varien respecte a l'edat i el gènere. En canvi, per a persones adultes els indicadors són constants. En conseqüència, portar a cap la codificació respecte al BMI sols en persones adultes em simplificarà considerablement la feina.
+
+````{r}
+#filter dataframe
+reduced_df_patient_survival<-reduced_df_patient_survival[(reduced_df_patient_survival$age>=18 & 
+                                                            reduced_df_patient_survival$d1_resprate_min>0 & 
+                                                            reduced_df_patient_survival$d1_spo2_max>0 &
+                                                            reduced_df_patient_survival$d1_spo2_min>0 &
+                                                            reduced_df_patient_survival$d1_heartrate_min>0),]
+```
+
+A continuació realitzaré els histogrames de les variables corresponent a les mesures que s'han realitzat durant les primeres 24 h dins la unitat. D'aquesta manera puc estudiar com es distribueixen els seus valors.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#We have a large number of variables, and generating an individual plot for each histogram of these variables will generate a lot of pages with only histograms. This fact will make it tedious to analyze them visually. For this reason I will make a plot containing several histograms in it. 
+
+#To generate the multiplot I will first generate several lists containing the histograms of the same group.
+histList_group1<- list()
+histList_group2<- list()
+histList_group3<- list()
+
+#column names from the histograms of each group.
+columns_for_histogram1 = c("d1_diasbp_max", 
+                           "d1_diasbp_min",
+                           "d1_heartrate_max",
+                           "d1_heartrate_min",
+                           "d1_mbp_max",
+                           "d1_mbp_min")
+
+columns_for_histogram2 = c("d1_resprate_max",
+                           "d1_resprate_min",
+                           "d1_spo2_max",
+                           "d1_spo2_min",
+                           "d1_sysbp_max",
+                           "d1_sysbp_min")
+
+columns_for_histogram3 = c("d1_temp_max",
+                           "d1_temp_min",
+                           "d1_glucose_max",
+                           "d1_glucose_min",
+                           "d1_potassium_max",
+                           "d1_potassium_min")
+
+#selects the columns corresponding to each group from the dataframe
+patient_survival_DATA1= reduced_df_patient_survival %>% select(all_of(columns_for_histogram1))
+patient_survival_DATA2= reduced_df_patient_survival %>% select(all_of(columns_for_histogram2))
+patient_survival_DATA3= reduced_df_patient_survival %>% select(all_of(columns_for_histogram3))
+
+#plot the histograms
+for(i in 1:ncol(patient_survival_DATA1)){
+  col <- names(patient_survival_DATA1)[i]
+  ggp <- ggplot(patient_survival_DATA1, aes_string(x = col)) +
+    geom_histogram(bins = 20, fill = "cornflowerblue", color = "black",ggtittle = "Comptador d'ocurrències per variable") 
+      histList_group1[[i]] <- ggp  # afegim cada plot a la llista buida
+}
+ multiplot(plotlist = histList_group1, cols = 3)
+ 
+
+for(i in 1:ncol(patient_survival_DATA2)){
+  col <- names(patient_survival_DATA2)[i]
+  ggp <- ggplot(patient_survival_DATA2, aes_string(x = col)) +
+    geom_histogram(bins = 20, fill = "cornflowerblue", color = "black",ggtittle = "Comptador d'ocurrències per variable") 
+      histList_group2[[i]] <- ggp  # afegim cada plot a la llista buida
+}
+ multiplot(plotlist = histList_group2, cols = 3)
+
+
+for(i in 1:ncol(patient_survival_DATA3)){
+  col <- names(patient_survival_DATA3)[i]
+  ggp <- ggplot(patient_survival_DATA3, aes_string(x = col)) +
+    geom_histogram(bins = 20, fill = "cornflowerblue", color = "black",ggtittle = "Comptador d'ocurrències per variable") 
+      histList_group3[[i]] <- ggp  # afegim cada plot a la llista buida
+}
+ multiplot(plotlist = histList_group3, cols = 3)
+```
+
+Si miro els histogrames obtinguts puc extreure aproximadament quins valors són els que es detecten més habitualment quan es realitzen mesures als pacients durant les primeres 24 h a la unitat. D'aquesta manera és possible establir un rang de valors per cada variable que representi els valors dins de la norma en dur a terme determinades mesures al pacient.
+
+Per tant, defineixo per cada variable que el rang de valors dins la norma son:
+
++ **Pressió arterial diastòlica (d1_diasbp)**: la màxima pressió arterial diastòlica detectada sol ubicar-se entre 65-105 mm Hg i la mínima entre 37,5-62,5 mm Hg.
++ **pressió arterial sistòlica (d1_sysbp)**: la màxima pressió arterial sistòlica detectada sol ubicar-se entre 120-170 mm Hg i la mínima 80-105 mm Hg.
++ **pressió arterial mitja (d1_mbp)**: la màxima pressió arterial mitja detectada sol ubicar-se entre 81,25-112,5 mm Hg i la mínima entre 52,5-78 mm Hg.
++ **freqüència cardíaca (d1_heartrate) **: la màxima freqüència cardíaca detectada sol ubicar-se entre 76-125 pulsacions/min i la mínima entre 50-88 pulsacions/min.
++ **freqüència respiratòria (d1_resprate)**: la màxima freqüència respiratòria detectada sol ubicar-se entre 13-37 respiracions/min i la mínima entre 12-19 respiracions/min.
++ **saturació perifèrica d'oxigen (d1_spo2)**: la màxima saturació perifèrica d'oxigen detectada sol ubicar-se entre 93-100% i la mínima entre 87,5-93%.
++ **temperatura (d1_temp)**: la màxima temperatura detectada sol ubicar-se entre 36,8-37,5 °C i la mínima entre 36-36,9 °C.
++ **concentració de glucosa (d1_glucose)**: la màxima concentració de glucosa detectada sol ubicar-se entre 145-198 mg/dl i la mínima entre 80-140 mg/dl.
++ **concentració de potassi (d1_potassium)**: la màxima concentració de potassi detectada sol ubicar-se entre 3,8-4,3 mmol/L i la mínima entre 3,5-4,2 mmol/L.
+
+
+A continuació visualitzaré el joc de dades. Primer analitzaré el percentatge de pacients hospitalitzats que han mort del nostre joc de dades.
+```{r}
+#count hospital_death
+counts_deatrate <- table(reduced_df_patient_survival$hospital_death)
+
+#plot
+barp <- barplot(prop.table(counts_deatrate), beside = TRUE, 
+                col = c("lightpink","ivory"), border = "grey",
+                ylim = c(0, 1), axes = TRUE,
+                ylab = "Percentage",
+                names.arg = c("0.Alive","1.Death"),
+                main = "Mortality rate of hospitalized patients.")
+text(barp, prop.table(counts_deatrate),col = 'darkred',cex = 1.2, labels = round(prop.table(counts_deatrate), digits = 2))
+```
+
+En la gràfica de barres anterior es pot observar que en el joc de dades disposo d'un 92% de pacients que han sobreviscut l'hospitalització en comparació al 8% que ha mort. Aquest fet s'ha de tenir en compte a l'hora d'aplicar algoritmes, ja que pot afectar de forma negativa i produir que els algoritmes que creï en la segona part de la pràctica classifiquin els pacients que tenen risc a morir durant la seva hospitalització com a pacients que no són de risc.
+
+
+Acte seguit, estudio si el genere del pacient influeix en la tasa de mortalitat.
+
+```{r}
+##count mortality rate by gender
+counts_gender_deathrate <- table(reduced_df_patient_survival$hospital_death, reduced_df_patient_survival$gender)
+
+#plot female and male in the same barplot
+barp <- barplot(prop.table(counts_gender_deathrate), beside = TRUE, 
+                col = c("lightpink","ivory"), border = "grey",
+                ylim = c(0, 0.55), axes = TRUE,
+                xlab = "Gender",ylab = "Percentage",
+                legend = c("0.Alive", "1.Death"),
+                names.arg = c("Female","Male"),
+                main = "mortality rate by gender")
+text(barp, prop.table(counts_gender_deathrate), col = 'darkred',cex = 1.2, labels = round(prop.table(counts_gender_deathrate), digits = 2))
+
+#plot female and male in diferent barplots
+par(mfrow = c(1, 2))
+for (i in 1:ncol(counts_gender_deathrate)){ 
+  if(colnames(counts_gender_deathrate)[i] == 'M') {
+    gender_indicator = "Male"
+    }
+  else {
+    gender_indicator = "Female"
+    }
+  barp <- barplot(prop.table(counts_gender_deathrate[,i]), beside = TRUE, 
+                  col = c("lightpink","ivory"), border = "grey", 
+                  ylim = c(0, 1), axes = TRUE,
+                  xlab = gender_indicator, ylab = "Percentage",
+                  legend = c("0.alive", "1.death"),
+                  main = "mortality rate by gender")
+  text(barp, prop.table(counts_gender_deathrate[,i]),col = 'darkred',cex = 1.2, labels = round(prop.table(counts_gender_deathrate[,i]), digits = 2))
+}
+```
+
+La primera gràfica que representa la taxa de mortalitat de cada gènere en un mateix gràfic de barres, em permet detectar que en el joc de dades disposo d'un 8% més de pacients de gènere masculí que de gènere femení.
+
+La segona gràfica que representa la taxa de mortalitat de cada gènere en gràfic de barres diferent, em permet detectar que la taxa de mortalitat per cadascun dels gèneres si l'analitzem individualment és la mateixa. Per tant, puc afirmar que el gènere del pacient no influeix en la taxa de mortalitat hospitalària.
+
+A continuació, estudio quin percentatge d'ètnies hi ha en el joc de dades.
+```{r}
+# count ethnicities
+count_ethnicity <- table(reduced_df_patient_survival$ethnicity)
+#pie chart of ethnicities
+pie(count_ethnicity,main = "Ethnicity of hospitalized patients")
+```
+
+En analitzar la gràfica circular detecto que la majoria de pacients del joc de dades són d'ètnia Caucàsica. Aquest fet era esperat, ja que el joc de dades prové d'un hospital localitzat en un país on la majoria de la seva població és caucàsica. 
+
+Procedeixo a estudiar la taxa de mortalitat pel cadascuna de les ètnies individualment.
+```{r}
+#count mortality rate by ethnicity
+counts_ethnicity_deathrate <- table(reduced_df_patient_survival$hospital_death, reduced_df_patient_survival$ethnicity)
+colors <- c("lightpink","ivory")
+
+#plot ethnicity mortality rate
+par(mfrow = c(2, 2))
+for (i in 1:4){
+  barp <- barplot(prop.table(counts_ethnicity_deathrate[,i]), beside = TRUE, col = colors, 
+                  ylim = c(0, 1), axes = TRUE,
+                  xlab = colnames(counts_ethnicity_deathrate)[i],
+                  ylab = "Percentage",
+                  legend = c("alive", "death"),
+                  border="grey",
+                  main = "Supervivencia per cada etnia")
+  
+  text(barp, prop.table(counts_ethnicity_deathrate[,i]),col='darkred',cex=1.2,  labels = round(prop.table(counts_ethnicity_deathrate[,i]), digits = 2))
+
+}
+
+par(mfrow = c(2, 2))
+for (i in 5:6){
+  barp <- barplot(prop.table(counts_ethnicity_deathrate[,i]), beside = TRUE, col = colors, 
+                  ylim = c(0, 1), axes = TRUE,
+                  xlab = colnames(counts_ethnicity_deathrate)[i],
+                  ylab = "Percentage",
+                  legend = c("alive", "death"),
+                  border="grey",
+                  main = "Supervivencia per cada etnia")
+  
+  text(barp, prop.table(counts_ethnicity_deathrate[,i]),  col='darkred',  cex=1.2, labels = round(prop.table(counts_ethnicity_deathrate[,i]), digits = 2))
+
+}
+```
+
+A les gràfiques de barres anteriors s'observa que no hi ha gaire diferència en les taxes de mortalitat respecte a l'ètnia. Podem veure que la taxa mortalitat màxima es dona en el cas de pacients d'ètnia hispana i natiu americana amb un 9% i el cas mínim en pacients africo americans, asiàtics i d'ètnia desconeguda amb un 7%.
+
+
+A continuació estudiaré com el BMI afecta en la mortalitat (BMI equival a IMC en angles). Per tal de fer aquest estudi primer discretitzare el BMI en rangs per tal de generar una variable que em permeti categoritzar el pes dels pacients.
+
+Constarem de les següents categories indicadores del pes per a pacients adults:
+
++ Si el BMI és menor a 18.5, es considera pes insuficient.
++ Si el BMI se situa entre 18.5 i 24.9, es considera pes normal o saludable.
++ Si el BMI se situa entre 25.0 y 29.9, es considera sobrepès.
++ Si el BMI és 30.0 o superior, es considera obesitat.
+
+Introdueixo la categorització de pes a partir del BMI al joc de dades.
+`
+
+```{r}
+reduced_df_patient_survival["BMI_weight_indicator"] <- cut(reduced_df_patient_survival$bmi, breaks = c(0,18.50,24.90,29.90,67.82), labels = c("underweight", "normal weight", "overweight", "obesity"))
+```
+
+Tot seguit estudio per quin indicador de pes hi ha una taxa de mortalitat més elevada.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+#BMI weight indicator by death rate
+ggplot(reduced_df_patient_survival, aes(hospital_death)) + 
+  geom_bar(aes(fill=BMI_weight_indicator), width = 0.8) + 
+  theme(axis.text.x = element_text(angle=0, vjust=0.6)) + 
+  labs(title="Relation between the weight indicator and mortality rate")
+```
+
+Primer defineixo que en l'eix X de la gràfica anterior tenim dues columnes. La 0.0 que es correspon a pacients vius posthospitalització i la 1.0 que es correspon a pacients morts posthospitalització.
+
+En el joc de dades predominen pacients amb un indicador de pes equivalent al sobrepès i obesitat i a més a més és observable que la proporció de pacients amb un indicador de pes insuficient resulta extremadament menor respecte a la resta.
+En 3 casos (sobrepès, obesitat i pes normal) es veu que els pacients que el nombre de pacients que han sobreviscut és considerablement major al nombre de pacients que ha mort durant l'ingrés. Així i tot, en el cas de pes insuficient aquesta diferència respecte al nombre de pacients vius i morts no és tan òbvia.
+Això pot ser degut al fet que el nombre de pacients amb pes insuficient és considerablement menor a la resta de casos, per aquest motiu procedirem a analitzar la taxa de mortalitat per cada indicador de pes de forma individual.
+```{r}
+#counts mortality rate by weight indicator
+counts_BMIweightindicator_deathrate <- table(reduced_df_patient_survival$hospital_death, reduced_df_patient_survival$BMI_weight_indicator)
+
+#plot
+par(mfrow = c(2, 2))
+for (i in 1:ncol(counts_BMIweightindicator_deathrate)){
+  barp <- barplot(prop.table(counts_BMIweightindicator_deathrate[,i]), beside = TRUE, 
+                  col = c("lightpink","ivory"), border = "grey",
+                  ylim = c(0, 1), axes = TRUE,
+                  xlab = colnames(counts_BMIweightindicator_deathrate)[i], ylab = "Percentage",
+                  legend = c("0.alive", "1.death"),
+                  main = "Mortality rate by BMI weight indicator")
+  text(barp, prop.table(counts_BMIweightindicator_deathrate[,i]) ,  col='darkred',  cex=1.2, labels = round(prop.table(counts_BMIweightindicator_deathrate[,i]), digits = 2))
+}
+```
+
+Es confirma en la gràfica anterior que per pacients amb sobrepès i obesitat la probabilitat que han sobreviscut a l'ingrés hospitalari equival a un 93%. En canvi, s'observa que aquest percentatge de supervivència disminueix en els altres dos casos, on el percentatge de supervivència més baix es dona per pacients amb pes insuficient amb un 86%.
+
+
+A continuació, estudiaré la taxa de mortalitat respecte a la presència o no de malalties prèvies.
+```{r}
+#generate two dataframes, one only with records of healthy patients and the other with records of patients who have a previously detected disease prior to hospital admission.
+healthy_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$cirrhosis == 0 &
+                                reduced_df_patient_survival$lymphoma == 0 &
+                                reduced_df_patient_survival$leukemia == 0 &
+                                reduced_df_patient_survival$aids == 0 &
+                                reduced_df_patient_survival$immunosuppression == 0 &
+                                reduced_df_patient_survival$hepatic_failure == 0 &
+                                reduced_df_patient_survival$solid_tumor_with_metastasis == 0 &
+                                reduced_df_patient_survival$diabetes_mellitus == 0) 
+
+unhealthy_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$cirrhosis == 1 |
+                                reduced_df_patient_survival$lymphoma == 1 |
+                                reduced_df_patient_survival$leukemia == 1 |
+                                reduced_df_patient_survival$aids == 1 |
+                                reduced_df_patient_survival$immunosuppression == 1 |
+                                reduced_df_patient_survival$hepatic_failure == 1 |
+                                reduced_df_patient_survival$solid_tumor_with_metastasis == 1 |
+                                reduced_df_patient_survival$diabetes_mellitus == 1) 
+
+
+#count mortality rate from healthy and unhealthy patients
+counts_unhealthy <- table(unhealthy_patient_survival$hospital_death)
+counts_healthy <- table(healthy_patient_survival$hospital_death)
+general_counts <- list(counts_unhealthy,counts_healthy)
+
+
+#plot
+par(mfrow = c(1, 2))
+for( i in general_counts){
+  if (identical(i, counts_unhealthy)){
+    health_patient_indicator = "patient with illness"}
+  else {
+    health_patient_indicator = "patient without illness"}
+  
+  barplot(prop.table(i),
+        col=c("lightpink","ivory") , border="grey",
+        ylim=c(0,1),
+        main="Mortality rate",
+        legend = c("0.alive", "1.death"),
+        xlab =health_patient_indicator, ylab = "percentage")
+  text(barp, prop.table(i),col = 'darkred', cex = 1.2,  labels = round(prop.table(i), digits = 2))
+}
+```
+
+Es pot observar com el fet que un pacient tingui una malaltia prèviament diagnosticada a l'ingrés o no, no influeix en la taxa de mortalitat del pacient d'una forma gaire exagerada. En el cas que un pacient estigui malalt prèviament a l'ingrés sols tindrà un 2% menys de possibilitats de supervivència respecte a un pacient que ha ingressat sense tenir malalties prèvies.
+
+A continuació estudiaré la taxa de mortalitat de cadascuna de les malalties definides en el joc de dades de forma individual.
+
+```{r}
+#generate tables where each table contains the records corresponding to the patients that have one or more of the diseases defined in the dataset.
+cirrhosis_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$cirrhosis == 1) 
+lymphoma_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$lymphoma == 1) 
+leukemia_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$leukemia == 1) 
+aids_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$aids == 1) 
+immunosuppression_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$immunosuppression == 1) 
+hepatic_failure_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$hepatic_failure == 1) 
+solid_tumor_with_metastasis_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$solid_tumor_with_metastasis == 1) 
+diabetes_mellitus_patient_survival = filter(reduced_df_patient_survival,reduced_df_patient_survival$diabetes_mellitus == 1) 
+
+
+#counts  mortality rate from each disease
+counts_cirrhosis <- table(cirrhosis_patient_survival$hospital_death)
+counts_lymphoma <- table(lymphoma_patient_survival$hospital_death)
+counts_leukemia <- table(leukemia_patient_survival$hospital_death)
+counts_aids <- table(aids_patient_survival$hospital_death)
+counts_immunosuppression <- table(immunosuppression_patient_survival$hospital_death)
+counts_hepatic_failure <- table(hepatic_failure_patient_survival$hospital_death)
+counts_solid_tumor_with_metastasis <- table(solid_tumor_with_metastasis_patient_survival$hospital_death)
+counts_diabetes_mellitus <- table(diabetes_mellitus_patient_survival$hospital_death)
+
+general_counts_firstpac= list(counts_cirrhosis, counts_lymphoma,
+                              counts_leukemia,counts_aids)
+general_counts_secondpac= list(counts_immunosuppression,counts_hepatic_failure,
+                     counts_solid_tumor_with_metastasis,counts_diabetes_mellitus)
+
+#plot
+par(mfrow = c(2, 2))
+for( i in general_counts_firstpac){
+  if (identical(i, counts_cirrhosis)){
+    illness_indicator = "Cirrhosis"}
+  if (identical(i, counts_lymphoma)){
+    illness_indicator = "Lymphoma"}
+  if (identical(i, counts_leukemia)){
+    illness_indicator = "Leukemia"}
+  if (identical(i, counts_aids)){
+    illness_indicator = "aids"}
+  
+  barplot(prop.table(i),
+        col=c("lightpink","ivory") , border="grey",
+        ylim=c(0,1),
+        main="Mortality rate",
+        legend = c("0.alive", "1.death"),
+        xlab =illness_indicator, ylab = "percentage")
+  text(barp, prop.table(i),col = 'darkred', cex = 1.2,  labels = round(prop.table(i), digits = 2))
+}
+
+par(mfrow = c(2, 2))
+for( i in general_counts_secondpac){
+  if (identical(i, counts_immunosuppression)){
+    illness_indicator = "Immunosuppression"}
+  if (identical(i, counts_hepatic_failure)){
+    illness_indicator = "Hepatic failure"}
+  if (identical(i, counts_solid_tumor_with_metastasis)){
+    illness_indicator = "Solid tumor with_metastasis"}
+  if (identical(i, counts_diabetes_mellitus)){
+    illness_indicator = "Diabetes mellitus"}
+  
+  barplot(prop.table(i),
+        col=c("lightpink","ivory") , border="grey",
+        ylim=c(0,1),
+        main="Mortality rate",
+        legend = c("0.alive", "1.death"),
+        xlab =illness_indicator, ylab = "percentage")
+  text(barp, prop.table(i),col = 'darkred', cex = 1.2,  labels = round(prop.table(i), digits = 2))
+}
+```
+
+Procedeixo a analitzar els gràfics anteriors.
+Sols pel cas de la diabetis mellitus s'observa que no hi ha un augment de la taxa de mortalitat si ho comparem amb els pacients que no tenen cap malaltia prèviament diagnosticada.
+En canvi, per la resta de malalties es veu que la taxa de mortalitat es troba 6% o més per sobre de la taxa de mortalitat dels pacients sense malalties prèviament diagnosticades. Es pot identificar que la malaltia amb major taxa de mortalitatés la leucèmia amb un 18% de morts.
+
+Aquestes variables em poden ser útils per si vull elaborar arbres de decisió en la segona part de la pràctica.
+
+Seguidament, estudiaré com es troben correlacionen les mesures preses als pacients durant les primeres 24 h d'ingrés respecte a la mortalitat de pacients en hospitals.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#select variables corresponding to the measurements performed on the patient during the first 24h
+n = c("d1_diasbp_max","d1_diasbp_min",
+      "d1_heartrate_max","d1_heartrate_min",
+      "d1_mbp_max","d1_mbp_min",
+      "d1_resprate_max","d1_resprate_min",
+      "d1_spo2_max","d1_spo2_min",
+      "d1_sysbp_max","d1_sysbp_min",
+      "d1_temp_max","d1_temp_min",
+      "d1_glucose_max","d1_glucose_min",
+      "d1_potassium_max","d1_potassium_min")
+
+factors= reduced_df_patient_survival %>% select(all_of(n))
+# calculate  and plot the correlation matrix
+res<-cor(factors)
+corrplot(res,method="color", 
+         tl.col="black", tl.srt=50, order = "AOE",number.cex=0.75,sig.level = 0.01)
+```
+
+En mirar la matriu de correlacions detecto que hi han variables que es troben altament correlacionades. Aquestes el conjunt de variables 'd1_diasp_max' i 'd1_mbp_max' i el conjunt de variables 'd1_diasp_min' i 'd1_mbp_min'. Aquest fet era d'esperar, ja que els valors corresponents a 'd1_mbp' no són més que la pressió arterial mitjana del pacient la qual es calcula fent la mitjana entre el valor obtingut per 'd1_diasbp' i el valor obtingut per 'd1_sysbp'. Si ens fixem es pot veure que 'd1_sysbp' també es troba bastant correlacionat amb 'd1_mbp'.
+
+És ja conegut que quan les variables es troben tan altament correlacionades incorporen soroll al joc de dades perquè aporten quasi la mateixa informació. Per aquest motiu, és millor eliminar una d'elles.
+
+```{r}
+#drop d1_mbp_max
+reduced_df_patient_survival$d1_mbp_max<- NULL
+#drop d1_mbp_max
+reduced_df_patient_survival$d1_mbp_min<- NULL
+```
+
+
+A continuació miraré les correlacions entre la taxa de mortalitat de pacients i les variables de mesures captades del pacient durant les primeres 24 h d'ingrés.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# lists with the variables d1
+
+n1 = c("d1_diasbp_max","d1_diasbp_min",
+       "d1_heartrate_max","d1_heartrate_min",
+       "d1_resprate_max","d1_resprate_min",
+       "d1_spo2_max","d1_spo2_min") 
+
+n2 = c("d1_sysbp_max","d1_sysbp_min",
+      "d1_temp_max","d1_temp_min",
+      "d1_glucose_max","d1_glucose_min",
+      "d1_potassium_max","d1_potassium_min")
+
+#select variables from dataframe
+data_d1_survival_patient= reduced_df_patient_survival %>% select(all_of(n1))
+data_d2_survival_patient= reduced_df_patient_survival %>% select(all_of(n2))
+
+#plot
+histList2<- vector('list', ncol(data_d1_survival_patient))
+for(i in seq_along(data_d1_survival_patient)){
+  message(i)
+histList2[[i]]<-local({
+  i<-i
+  col <-log(data_d1_survival_patient[[i]])
+  ggp<- ggplot(data = data_d1_survival_patient, aes(x = reduced_df_patient_survival$hospital_death, y=col)) + 
+    geom_point(color = "gray30") + geom_smooth(method = lm,color = "firebrick") + 
+    theme_bw() + xlab("Survival") + ylab(names(data_d1_survival_patient)[i])
+  })
+}
+multiplot(plotlist = histList2, cols = 4)
+
+histList2<- vector('list', ncol(data_d2_survival_patient))
+for(i in seq_along(data_d2_survival_patient)){
+  message(i)
+histList2[[i]]<-local({
+  i<-i
+  col <-log(data_d2_survival_patient[[i]])
+  ggp<- ggplot(data = data_d2_survival_patient, aes(x = reduced_df_patient_survival$hospital_death, y=col)) + 
+    geom_point(color = "gray30") + geom_smooth(method = lm,color = "firebrick") + 
+    theme_bw() + xlab("Death rate") + ylab(names(data_d2_survival_patient)[i])
+  })
+}
+multiplot(plotlist = histList2, cols = 4)
+```
+
+Si estudio les correlacions obtingudes puc afirmar que:
+
++ La mortalitat dels pacients s'associa a freqüències respiratòries màximes elevades.
++ La mortalitat dels pacients s'associa a freqüència cardíaques màximes elevades.
++ La mortalitat dels pacients s'associa a pressions diastòliques mínimes baixes.
++ La mortalitat dels pacients s'associa a nivells de glucosa màxima elevats.
++ La mortalitat dels pacients s'associa a nivells de potassi màxim elevats.
++ La mortalitat dels pacients s'associa a pressions sistòliques mínimes baixes.
++ La mortalitat dels pacients s'associa a temperatures baixes.
+
+#### Analisis de components principals 
+
+Com es pot veure el joc de dades amb el qual treballi disposa d'un elevat nombre de variables i gran part d'elles es troben correlacionades entre si. Resulta d'interès poder reduir la dimensionalitat del joc de dades abans d'aplicar qualsevol mena d'algoritme. Aquesta reducció de dimensionalitat la faré a partir de l'anàlisis de components principals.
+
+Però abans de realitzar aquest anàlisis, primer procediré a normalitzar les variables que utilitzarem per realitzar-lo (variables de les mesures realitzades als pacients durant les primeres 24 h) per tal d'assegurar-nos que contribueixen de forma igualitària. Un cop normalitzades les utilitzaré com un joc de dades a part per assegurar-me que l'anàlisi de components principals sols s'apliquen a aquestes variables.
+```{r}
+# normalize variables d1
+variables_d1_index_range <- 6:21
+for(i in variables_d1_index_range) {
+  reduced_df_patient_survival[,i]  = (reduced_df_patient_survival[,i]-min(reduced_df_patient_survival[,i]))/((max(reduced_df_patient_survival[,i]) - min (reduced_df_patient_survival[,i])))
+}
+
+# select variables
+n = c("d1_diasbp_max","d1_diasbp_min",
+      "d1_heartrate_max","d1_heartrate_min",
+      "d1_resprate_max","d1_resprate_min",
+      "d1_spo2_max","d1_spo2_min",
+      "d1_sysbp_max","d1_sysbp_min",
+      "d1_temp_max","d1_temp_min",
+      "d1_glucose_max","d1_glucose_min",
+      "d1_potassium_max","d1_potassium_min")
+
+#create reduced dataframe with the specific variables
+reduced_df_patient_survival_PCA<- reduced_df_patient_survival %>% select(all_of(n))
+```
+
+Inicio l'anàlisi de components principals del joc de dades.
+```{r}
+# Calculate principal components from scaled dataframe
+pca.acc <- prcomp(reduced_df_patient_survival_PCA)
+summary(pca.acc)
+```
+
+Si apliquem la funció summary al corresponent anàlisis de funció principal obtenint la proporció de variància aplicada al conjunt total per a cada atribut. Podem observar llavors com PC1 explica un 0.1956 de variabilitat del total de dades; mentre que PC16 explica només el 0.00089.
+
+A continuació estudiaré el pes de cada atribut generat sobre el joc de dades mitjançant un histograma:
+```{r}
+
+#The eigenvalues correspond to the amount of variation explained by each principal component (PC).
+ev= get_eig(pca.acc)
+fviz_eig(pca.acc, addlabels=TRUE, ncp = 18) + labs(title = "Variances - PCA", x = "Principal Components", y = "Percentatge of explained variances")
+```
+
+Puc observar que diversos components principals aportaran una explicació adequada de la variància del joc de dades. Per tal de seleccionar aquells que ens aporten més informació rellevant, aplicaré el mètode de Kàiser. Aquest mètode mantindrà els components principals que tinguin una variància superior a 1.
+
+El mètode de Kàiser pot presentar problemes, ja que sobreestima el nombre de factors, així i tot l'aplicaré per analitzar els resultats.
+```{r}
+# calculate the variance of the principal components from the standard deviation
+var_acc <- pca.acc$sdev^2
+var_acc
+```
+
+En aquest cas tots els components principals presenten una variància menor a 1, això pot ser degut al fet que no s'han escalat les dades. Per tant, el següent pas serà escalar les dades i tornar a calcular la variància.
+```{r}
+# scale dataframe
+acc_scale <- scale(reduced_df_patient_survival_PCA)
+# Calculate principal components from scaled dataframe
+pca.acc_scale <- prcomp(acc_scale)
+# calculate the variance of the principal components from the standard deviation
+var_acc_scale <- pca.acc_scale$sdev^2
+var_acc_scale
+```
+
+Un cop calculada la variància en les variables escalades puc aplicar el criteri de Kàiser, el qual m'indica que m'he de quedar amb les components principals 1,2,3,4,5,6 i 7.
+
+**Contibució de les variables**
+
+Ja he seleccionat les components principals. Ara he de determinar com es troben de correlacionades les variables seleccionades a aquests components principals.
+
+```{r}
+#representation of the correlation between variables and principal components
+var <- get_pca_var(pca.acc_scale)
+corrplot(var$cos2[,1:7], is.corr=FALSE)
+```
+
+Veient el gràfic anterior puc veure que hi han variables que no estan gaire correlacionades en cap dels components principals seleccionats. En conseqüència, aquestes poden ser simplificades de l'anàlisi global, ja que no contribueixen gaire. Per tant, procedim a eliminar les variables **'d1_temp_max'**, **'d1_spo2_min'**, **'d1_resperate_max'** i **'d1_resperate_min'**.
+
+```{r}
+#drop d1_temp_max
+reduced_df_patient_survival_PCA$d1_temp_max<- NULL
+#drop d1_spo2_max
+reduced_df_patient_survival_PCA$d1_spo2_min<- NULL
+#drop d1_resperate_max
+reduced_df_patient_survival_PCA$d1_resperate_max<- NULL
+#drop d1_resperate_max
+reduced_df_patient_survival_PCA$d1_resperate_min<- NULL
+
+```
+
+
+A continuació estudiaré quines variables contribueixen més pels components principals més importants (PC1 i PC2).
+```{r}
+#plot variable contribution for PC1 and PC2
+fviz_pca_var(prcomp(scale(reduced_df_patient_survival_PCA)), col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+             )
+``` 
+
+De el següent gràfic podem extreure bastanta informació. 
+
+Podem visualitzar que la variable que més aporta a les components principals PC1 i PC2 són **d1_sysbp_min** i **d1_diaspb_min** per un costat  i **d1_heartrate_max** i **d1_heartrate_max** per l'altre. Això és degut en part perque que estan correlacionades, si mirem el diagrama de correlació que hem generat anteriorment podem veure com **d1_sysbp_min** i **d1_diaspb_min** estan correlacionades entre si. D' altra banda **d1_heartrate_max** i **d1_heartrate_min** també ho estan entre si.
+
+Podem afirmar llavors que a mesura que augmenten les nostres components principals, també augmentaran les nostres variables relacionades amb la pressió arterial mínima (d1_sysbp_min i d1_diaspb_min). En canvi, a mesura que les dues components principals disminueixin, hi haurà un creixement en les mesures relacionades amb la freqüència cardíaca (d1_heartrate_max i d1_heartrate_min).
+
+En definitiva, podem afirmar que les variables que ens serviran a l'hora de predir si un pacient sobreviu o no seran aquelles que es corresponen a la pressió arterial i aquelles que estan correlacionades, és a dir, el parell **d1_heartrate_max-d1_heartrate_min** i el parell **d1_sysbp_min-d1_diaspb_min**.
+
+### Set de dades definitiu per la segona part de la practica
+
+Un cop visualitzades les dades generem el set de dades definitiu.
+
+```{r}
+
+#seleccionem les columnes que ens resulten d'interes despres de haver visualitzat les dades i estudiat el PCA
+final_df_patient_survival = reduced_df_patient_survival[,c("patient_id",
+                                                  "age",
+                                                  "bmi",
+                                                  "BMI_weight_indicator",
+                                                  "ethnicity",
+                                                  "gender",
+                                                  "d1_diasbp_max", 
+                                                  "d1_diasbp_min",
+                                                  "d1_heartrate_max",
+                                                  "d1_heartrate_min",
+                                                  "d1_spo2_max",
+                                                  "d1_sysbp_max",
+                                                  "d1_sysbp_min",
+                                                  "d1_temp_min",
+                                                  "d1_glucose_max",
+                                                  "d1_glucose_min",
+                                                  "d1_potassium_max",
+                                                  "d1_potassium_min",
+                                                  "cirrhosis",
+                                                  "lymphoma",
+                                                  "leukemia",
+                                                  "aids",
+                                                  "immunosuppression",
+                                                  "hepatic_failure",
+                                                  "solid_tumor_with_metastasis",
+                                                  "diabetes_mellitus",
+                                                  "hospital_death")]
+```
+
+Finalment, discretitzo les variables que hem obtingut que contribuïen més respecte als components principals més importants: **d1_sysbp_min**, **d1_diaspb_min**, **d1_heartrate_max** i **d1_heartrate_max**. Els clusters assolits per cadascuna de les variables em poden servir a l'hora d'aplicar algoritmes en un futur.
+
+
+Discretitzo **d1_sysbp_min**.
+```{r}
+#descretize d1_sysbp_min
+set.seed(1)
+table(discretize(final_df_patient_survival$d1_sysbp_min, "cluster" ))
+hist(final_df_patient_survival$d1_sysbp_min, main="minimum systolic blood pressure by kmeans",xlab="minimum systolic blood pressure", ylab="counts",col = "lightpink", border = "white")
+abline(v = discretize(final_df_patient_survival$d1_sysbp_min, method = "cluster", onlycuts=TRUE), col = "darkred", lwd = 2)
+```
+
+Veig que la discretització ha generat tres clústers:
+
++ **Clúster 1 [0,0.389)**: pressió sistòlica mínima per sota del rang esperat.
++ **Clúster 2 [0.389,0.606)**: pressió sistòlica mínima en el rang esperat.
++ **Clúster 3 [0.606,1]**: pressió sistòlica mínima per sobre del rang esperat.
+
+Introdueixo aquesta discretització al joc de dades:
+```{r}
+final_df_patient_survival$d1_sysbp_min_KMeans<- (discretize(final_df_patient_survival$d1_sysbp_min,"cluster" ))
+```
+
+Discretitzo **d1_diasbp_min**:
+```{r}
+#descretize d1_diaspb_min
+set.seed(1)
+table(discretize(final_df_patient_survival$d1_diasbp_min, "cluster" ))
+hist(final_df_patient_survival$d1_diasbp_min, main="minimum diastolic blood pressure by kmeans",xlab="minimum diastolic blood pressure", ylab="counts",col = "lightpink",border = "white")
+abline(v=discretize(final_df_patient_survival$d1_diasbp_min, method="cluster", onlycuts=TRUE),col="darkred", lwd = 2)
+```
+
+Veig que la discretització ha generat tres clústers:
+
++ **Clúster 1 [0,0.406)**: pressió diastòlica mínima per sota del rang esperat.
++ **Clúster 2 [0.406,0.625)**: pressió diastòlica mínima en el rang esperat
++ **Clúster 3 [0.625,1]**: pressió diastòlica mínima per sobre del rang esperat.
+
+Introdueixo aquesta discretització al joc de dades:
+```{r}
+final_df_patient_survival$d1_diasbp_min_KMeans<- (discretize(final_df_patient_survival$d1_diasbp_min,"cluster" ))
+```
+
+Discretitzo **d1_heartrate_max**:
+```{r}
+#descretize d1_heartrate_max
+set.seed(1)
+table(discretize(final_df_patient_survival$d1_heartrate_max, "cluster" ))
+hist(final_df_patient_survival$d1_heartrate_max, main="maximum heart rate by kmeans",xlab="maximum heart rate", ylab="counts",col = "lightpink",border = "white")
+abline(v=discretize(final_df_patient_survival$d1_heartrate_max, method="cluster", onlycuts=TRUE),col="darkred", lwd = 2)
+```
+
+Veig que la discretització ha generat tres clústers:
+
++ **Clúster 1 [0,0.293)**: freqüència cardíaca màxima per sota del rang esperat.
++ **Clúster 2 [0.293,0.52)**: freqüència cardíaca màxima en el rang esperat
++ **Clúster 3 [0.52,1]**: freqüència cardíaca màxima per sobre del rang esperat
+
+Introdueixo aquesta discretització al joc de dades:
+```{r}
+final_df_patient_survival$d1_heartrate_max_KMeans<- (discretize(final_df_patient_survival$d1_heartrate_max,"cluster" ))
+```
+
+Discretitzo **d1_heartrate_min**:
+```{r}
+#descretize d1_heartrate_min
+set.seed(1)
+table(discretize(final_df_patient_survival$d1_heartrate_min, "cluster" ))
+hist(final_df_patient_survival$d1_heartrate_min, main="manimum heart rate by kmeans",xlab="minimum heart rate", ylab="counts",col = "lightpink",border = "white")
+abline(v=discretize(final_df_patient_survival$d1_heartrate_min, method="cluster", onlycuts=TRUE),col="darkred", lwd = 2)
+```
+
+Veig que la discretització ha generat tres clústers:
+
++ **Clúster 1 [0,0.356)**: freqüència cardíaca mínima per sota del rang esperat.
++ **Clúster 2 [0.356,0.47)**: freqüència cardíaca mínima en el rang esperat
++ **Clúster 3 [0.47,1]**: freqüència cardíaca mínima per sobre del rang esperat
+
+
+Introdueixo aquesta discretització al joc de dades:
+```{r}
+final_df_patient_survival$d1_heartrate_min_KMeans<- (discretize(final_df_patient_survival$d1_heartrate_min,"cluster" ))
+```
+
+#### JOC DE DADES DEFINITIU
+
+El joc de dades definitiu que utilitzaré per la segona part de la pràctica es el següent.
+```{r}
+str(final_df_patient_survival)
+```
+
+El joc de dades definitiu amb el qual treballo constarà de **31** i **79.310** registres.
+
+******
+## SEGONA PART DE LA PRÀCTICA (pràctica 2)
+******
+
+En aquesta segona part de la pràctica és quan extreure'm els coneixements no evidents del joc de dades. És a dir, s'estudiarà el joc de dades mitjançant diferents algoritmes per tal de trobar quin algoritme és el més adequat per predir els casos en què el pacient sobreviurà o no a l'ingrés intrahospitalari.
+Dels diferents algoritmes que s'utilitzaran veurem que s'aplicaran tan algoritmes que es classifiquen com a mètodes supervisats, com algoritmes que es classifiquen com a mètodes no supervisats.
+
+Si aprofundim més respecte als algoritmes aplicats per cada exercici, veurem que:
+
++ Exercici 1. Mètode no supervisat. Algoritme KMeans basat en la distància euclidiana.
++ Exercici 2. Mètode no supervisat. Algoritme KMeans basat en la distància de Manhattan.
++ Exercici 3. Mètode no supervisat. Algoritme OPTICS i DBSCAN.
++ Exercici 4. Mètode supervisat. Algoritme d'arbres de decisió.
++ Exercici 2. Mètode supervisat. Algoritme Random Forest.
+
+
+Els dos últims exercicis serviran per explicar quina informació hem extret i quines limitacions presenta el joc de dades estudiat.
+
+Per dur a ter-me els exercicis de forma adequada previament caldrà eliminar el esbiaixament del joc de dades, ja que hi ha una barbaritat de casos en què el pacient ha sobreviscut respecte als casos en què el pacient ha mort. Aquest fet afectarà negativament als resultats dels algoritmes que es desenvolupin. 
+
+Per solucionar aquesta problemàtica filtrarem del joc de dades el nombre de casos en què el pacient ha sobreviscut, de tal manera que encara es conservi suficients registres per tenir un arbre de decisió realista.
+Cal tenir en compte que com més reduïm els registres de supervivents, millor precisió tindrà l'arbre amb els registres de pacients morts. Però cal anar amb compte, perquè en reduir els registres supervivents es perd informació valuosa i podem obtenir un arbre de decisió que no sigui realista.
+
+```{r message= FALSE, warning=FALSE}
+# filter
+reduced_df_patient_survival <- final_df_patient_survival %>%
+  filter(hospital_death == 1) %>%
+  slice(1:7000) %>%
+  bind_rows(final_df_patient_survival %>%
+               filter(hospital_death == 0) %>%
+               slice(1:10000))
+
+# mess up the registers
+set.seed(1)
+reduced_df_patient_survival <- reduced_df_patient_survival[sample(nrow(reduced_df_patient_survival)),]
+```
+
+
+### Exercici 1. Aplicació d'un model no supervisat basat amb el concepte de distància.
+
+Durant aquest exercici classificaré la possibilitat de supervivència dels pacients del meu joc de dades agrupant-los amb clústers a partir dels punts obtinguts de la interacció de dues de les variables del joc de dades. Per tal de poder generar aquestes agrupacions aplicaré el mètode K-Means, el qual crearà K grups i assignarà a cada punt al clúster K amb el qual tingui una distància menor respecte el seu centroide. Per aquest cas s'utilitzarà la distància K-Means per defecte, que és l'euclidiana.
+
+El primer pas és elegir les variables adequades per dur a terme la clusterització, ja que no totes influeixen de la mateixa manera al fet que un pacient mori o no.
+Per tal de seleccionar les variables, m'he basat en l'anàlisi de components principals que he realitzat en la primera part de la pràctica.
+Si estudiem els resultats obtinguts anteriorment, s'observa que les variables més rellevants respecte al PC1 i el PC2 són les *d1_sysbp_min**, **d1_diaspb_min**, **d1_heartrate_max** i **d1_heartrate_min**. Per tant, aquestes són les variables que he emprat per aplicar aquest algoritme.
+
+```{r message= FALSE, warning=FALSE}
+# select the variables d1_sysbp_min,d1_diaspb_min, d1_heartrate_max and d1_heartrate_max from final_df_patient_survival
+kmeans_df_patient_survival = reduced_df_patient_survival[c("d1_sysbp_min","d1_diasbp_min", "d1_heartrate_max", "d1_heartrate_min")]
+```
+
+En el meu cas d'estudi, ja sé prèviament que el nombre total de clústers que vull aconseguir mitjançant K-Means és 2, on cadascun dels clústers es correspondrà a si el pacient ha sobreviscut o si el pacient a mort. Així i tot, he volgut avaluar la qualitat de l'algoritme en el cas que varií el nombre total de clústers a realitzar, ja que vull comprovar que s'obté la qualitat més gran quan es formen sols 2 clústers.
+Aquesta anàlisi de qualitat el faré aplicant el coeficient de Silhouette mitja.
+
+```{r message= FALSE, warning=FALSE}
+# apply the daisy function to calculate the dissimilarity matrix of the selected variables
+# problem when applying the daisy! the dataset is too big to be able to apply the function, therefore it is necessary to select a subset of the original dataset to be able to obtain the dissimilarity matrix. 
+smaller_kmeans_df <- kmeans_df_patient_survival[1:10000,]
+disimilarity_matrix <- daisy(smaller_kmeans_df) 
+
+# Generate the variables where the results obtained by each quality evaluation method will be stored.
+results_siluette <- rep(0, 10)
+
+#perform a loop to check the quality of the model obtained by the different number of clusters (from 0 to 10).
+for (i in c(2,3,4,5,6,7,8,9,10))
+{
+  fit <- kmeans(smaller_kmeans_df,i, nstart = 25)
+  y_cluster <- fit$cluster
+  silhoutte_values <- silhouette(y_cluster, disimilarity_matrix)
+  results_siluette[i] <- mean(silhoutte_values[,3])
+}
+```
+
+A continuació representaré gràficament els coeficients de Silhouette mitjans obtinguts per cada algoritme K-Means segons el nre. de clústers determinats.
+```{r message= FALSE, warning=FALSE}
+plot(2:10, results_siluette[2:10],
+     type = "o",
+     col = "blue",
+     pch = 0,
+     xlab = "nº clusters", ylab = "silhouette", 
+     main = 'Average silhouette with respect to number of clusters')
+```
+
+Teòricament, se sap que l'algoritme de K-Means de major qualitat serà aquell que presenti un coeficient de Silhouette mitja major. Si miro la gràfica resultant, veig que el millor algoritme K-Means s'obtindrà per a dos clústers. Aquest resultat ja és un bon indicador que les variables escollides són les adequades per realitzar la clusterització mitjançant K-Means respecte a la mortalitat intrahospitalària dels pacients.
+
+A continuació, procediré a aplicar el mètode de K-Means per dur a terme les 2 agrupacions. Posteriorment, representaré gràficament els clústers assolits a partir de les variables, mitjançant l'agrupació de les variables de dos en dos i interpretaré la informació que es pot extreure de cadascuna de les gràfiques aconseguides.
+```{r message= FALSE, warning=FALSE}
+# apply K-means to the reduced dataset to obtain 2 clusters
+set.seed(1)
+patient_survival_numcluster_2 <- kmeans(kmeans_df_patient_survival, 2, nstart = 25)
+
+# Classification with respect to "d1_sysbp_min", "d1_diasbp_min"
+par(mfrow = c(1, 2))
+
+# K-Means classification
+plot(kmeans_df_patient_survival[c(1,2)], 
+    col = c('lightpink', 'brown3')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification")
+
+legend("topleft", 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       pch = 16, 
+       col = c('lightpink', 'brown3')[unique(patient_survival_numcluster_2$cluster)])
+
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_sysbp_min","d1_diasbp_min")],
+     col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Classificació real")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+
+```
+
+En aquest cas primer analitzaré els resultats obtinguts a la gràfica de la classificació real i després ho compararé amb els clústers obtinguts amb l'algoritme.
+En els resultats assolits a la classificació real es pot observar un augment de mortalitat intrahospitalària en pacients amb mesures petites de "d1_sysbp_min" i "d1_diasbp_min". Així i tot, no es detecta clarament dos grups ben diferenciats (és a dir, que en una zona se situen tots els pacients que han mort i en un altre els pacients que han sobreviscut), sinó que es detecta un increment de la mortalitat en una zona especifica i un increment de la supervivencia en una altre zona però per quasi tots els valors disponibles de "d1_sysbp_min" i "d1_diasbp_min" predominen els dos casos.
+
+Si ara analitzo la classificació per K-Means i ho comparo amb la classificació real és observable que el clúster 1 representarà els pacients que han sobreviscut a l'ingrés intrahospitalari, ja que just en aquella zona és on se situen de forma majoritària els pacients que han sobreviscut si ho comparem amb la classificació real (tenint en compte sempre que hi ha algunes excepcions). En canvi, el clúster 2 representarà als pacients que han mort durant l'ingrés, pel fet que just en aquella zona si mirem la classificació real és on es detecta l'increment de mortalitat.
+
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_heartrate_max", "d1_heartrate_min"
+par(mfrow = c(1, 2))
+
+# K-Means classification
+plot(kmeans_df_patient_survival[c(3,4)], 
+     col = c('lightpink', 'brown3')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification")
+
+legend("topleft", 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       pch = 16, 
+       col = c('lightpink', 'brown3')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_heartrate_max","d1_heartrate_min")],
+     col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+En aquest cas primer si observo els resultats obtinguts a la classificació real, es detecta que les dues categories respecte a la classificació de la supervivència del pacient es troben extremadament barrejades per aquestes variables. En conseqüència serà més difícil interpretar la classificació realitzada per K-Means.
+Si a més a més, analitzo el K-Means també puc detectar que els dos clústers aconseguits estan extremadament superposats, per tant, he decidit no tenir en compte aquesta combinació de variables per dur a terme l'anàlisi.
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_heartrate_max", "d1_sysbp_min"
+par(mfrow = c(1, 2))
+
+# K-Means classification
+plot(kmeans_df_patient_survival[c(1,3)], 
+     col = c('lightpink', 'brown3')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification")
+
+legend("topleft", 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       pch = 16, 
+       col = c('lightpink', 'brown3')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(final_df_patient_survival[c("d1_sysbp_min","d1_heartrate_max")],
+     col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+En aquest cas primer si observo els resultats obtinguts a la classificació real, es detecta que les dues categories respecte a la classificació de la supervivència del pacient es troben extremadament barrejades per aquestes variables. En conseqüència serà més difícil interpretar la classificació realitzada per K-Means.Per tant, he decidit no tenir en compte aquesta combinació de variables per dur a terme l'anàlisi.
+
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_sysbp_min", "d1_heartrate_min"
+par(mfrow = c(1, 2))
+
+# K-Means classification
+plot(kmeans_df_patient_survival[c(1,4)], 
+     col = c('lightpink', 'brown3')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification")
+
+legend("topleft", 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       pch = 16, 
+       col = c('lightpink', 'brown3')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_sysbp_min","d1_heartrate_min")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(final_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+En els resultats obtinguts a la classificació real es pot observar un increment a considerar de la mortalitat intrahospitalària en pacients que presenten mesures petites de "d1_sysbp_min" i per mesures "d1_diasbp_min" mínimes o màximes.
+Així i tot, no es detecta clarament dos grups ben diferenciats (és a dir, que en una zona se situen tots els pacients que han mort i en un altre els pacients que han sobreviscut), sinó que es detecta un increment de la mortalitat en una zona especifica i un increment de la supervivencia en una altre zona però per quasi tots els valors disponibles de "d1_sysbp_min" i "d1_heartrate_min" predominen els dos casos.
+
+Si ara analitzo la classificació per K-Means i ho comparo amb la classificació real és observable que el clúster 2 representarà els pacients que han mort a l'ingrés intrahospitalari, ja que just en aquella zona si mirem la classificació real, quasi tots els punts es corresponen pacients morts (tenint en compte algunes excepcions). En canvi, el clúster 1 representarà als pacients que han sobreviscut durant l'ingrés, perquè just en aquella zona si mirem la classificació real, és on es detecta l'increment de supervivencia
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_diasbp_min", "d1_heartrate_max"
+par(mfrow = c(1, 2))
+
+# K-Means classification
+plot(kmeans_df_patient_survival[c(2,3)], 
+     col = c('lightpink', 'brown3')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification")
+
+legend("topleft", 
+       legend =  unique(patient_survival_numcluster_2$cluster), 
+       pch = 16, 
+       col = c('lightpink', 'brown3')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_diasbp_min","d1_heartrate_max")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(final_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+En els resultats obtinguts a la classificació real es pot observar un increment a considerar de la mortalitat intrahospitalària en pacients que presenten mesures petites de "d1_diasbp_min" i mesures grans de "d1_heartrate_max".
+Cal tenir en compte que no hi ha dos grups ben diferenciats, sinó que es detecta un increment de la mortalitat en una zona especifica i un increment de la supervivencia en una altre zona però per quasi tots els valors disponibles de "d1_sysbp_min" i "d1_heartrate_min" predominen els dos casos.
+
+Si ara analitzo la classificació per K-Means i ho comparo amb la classificació real és observable que el clúster 1 representarà els pacients que han sobreviscut a l'ingrés intrahospitalari, ja que just en aquella zona si mirem la classificació real, quasi tots els valors es corresponen a pacients vius (tenint en compte algunes excepcions). En canvi, el clúster 2 representarà als pacients que han mort durant l'ingrés, pel fet que just en aquella zona si mirem la classificació real, és on es detecta l'increment de mortalitat.
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_diasbp_min", "d1_heartrate_min"
+par(mfrow = c(1, 2))
+
+# K-Means classification
+plot(kmeans_df_patient_survival[c(2,4)], 
+     col = c('lightpink', 'brown3')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification")
+
+legend("topleft", 
+       pch = 16, 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       col = c('lightpink', 'brown3')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_diasbp_min","d1_heartrate_min")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+En els resultats obtinguts a la classificació real es pot observar un increment a considerar de la mortalitat intrahospitalària en pacients que presenten mesures petites de "d1_diasbp_min" i mesures considerades grans i petites de la variable "d1_heartrate_max".
+Cal tenir en compte que no hi ha dos grups ben diferenciats, sinó que es detecta un increment de la mortalitat en una zona especifica i un increment de la supervivencia en una altre zona però per quasi tots els valors disponibles de "d1_sysbp_min" i "d1_heartrate_min" predominen els dos casos.
+
+Si ara analitzo la classificació per K-Means i ho comparo amb la classificació real és observable que el clúster 2 representarà els pacients que han sobreviscut a l'ingrés intrahospitalari, ja que just en aquella zona si mirem la classificació real, quasi tots els valors es corresponen a pacients vius (tenint en compte algunes excepcions). En canvi, el clúster 1 representarà als pacients que han mort durant l'ingrés, pel fet que just en aquella zona si mirem la classificació real, és on es detecta l'increment de mortalitat.
+
+En conclusió, després de veure totes les representacions gràfiques anteriors puc determinar que aquest algoritme de K-Means generarà els següents clústers:
++ Clúster 1: quasi la majoria de punts que es corresponen a persones que han sobreviscut durant l'ingrés hospitalari i alguns punts de persones que han mort.
++ Clúster 2: quasi la majoria de punts que es corresponen a persones que han mort durant l'ingrés hospitalari i alguns punts de persones que han sobreviscut
+
+Per tant, a l'hora d'elegir quins pacients necessiten més atenció perquè tenen més perill de mort, elegirem els que pertanyin al clúster 2. És obvi que dins del clúster 1 hi haurà molts pacients que no estan en perill, però, així i tot, aquesta classificació permet focalitzar l'atenció i els recursos de forma més eficient cap als pacients amb perill de mort i, per tant, no es malgastaran recursos amb pacients que realment no els necessiten tan urgentment.
+
+
+Òbviament, si el K-Means fos un mètode perfecte, s'hagués aconseguit un clúster 2 amb sols pacients vius i un clúster 1 amb sols pacients morts. En conseqüència, analitzaré respecte al cas ideal quants registres no s'han classificat de forma adequada. Aixó es farà mtjançant una matriu de confusió.
+
+```{r message= FALSE, warning=FALSE}
+precition_classification_patiensurvival <- table(reduced_df_patient_survival$hospital_death, patient_survival_numcluster_2$cluster, dnn= c("Reals","Predicted"))
+colnames(precition_classification_patiensurvival) <- c("Clúster 1", "Clúster 2")
+rownames(precition_classification_patiensurvival) <- c("0.Alive","1.Death")
+addmargins(precition_classification_patiensurvival)
+
+```
+
+Si analitzo la matriu de confusió, es pot determinar que el percentatge d'encerts de la classificació del clúster 1 que es correspon a pacients que sobreviuran és de 77.56%. En canvi, el percentatge d'encerts de la classificació del clúster 2 el qual es correspon a pacients que moriran és de 57,4%. En el meu cas, realment la categoria que vull predir amb el menor percentatge d'errors possible és la de pacients que han mort. Per tant, puc afirmar que l'algoritme K-Means basat en distància euclidiana funcionarà malament per a classificar els pacients que tenen risc de morir en l'ingrés encara que tingui un índex d'error del 42.61%, per tant no es valid.
+Aquest resultat era d'esperar si tenim en compte com de superposades estan les dos categories.
+
+### Exercici 2. Aplicació d'un model no supervisat amb una mètrica de distància diferent.
+
+Durant aquest exercici tornaré a realitzar una classificació del meu joc de dades respecte a la mortalitat dels pacients aplicant un algoritme K-Means, però ara aplicaré una mètrica de distància diferent, la qual serà la distància de Manhattan.
+S'entén com a distància de Manhattan la distància entre dos punts (punt A i punt B) que es troba definida com el sumatori de la diferència absoluta de les seves coordenades. Es tracta d'una distància diferent de l'aplicada anteriorment a l'exercici 1, la qual era la distància euclidiana i es defineix com l'arrel quadrada del sumatori de les diferències entre les seves coordenades.
+
+Com que les distàncies de Manhattan es basen en el valor absolut, el model obtingut en aquest cas serà menys sensible als valors outliers respecte al model obtingut en l'exercici 1. Podem veure que en el nostre joc de dades tenim bastants valors que es poden considerar outliers respecte a pacients que han mort. Per tant, en aplicar l'algoritme KMeans respecte a la distància de Manhattan es preveu assolir resultats un xic diferents dels que s'han aconseguit anteriorment.
+
+A continuació procediré a dur a terme l'algoritme Kmeans per la nova mètrica.
+Òbviament per tal de dur a terme aquest exercici utilitzaré les mateixes columnes que he fet servir per l'exercici 1 i l'objectiu serà generar el mateix nombre de clústers, és a dir, 2 clústers un pels pacients que han sobreviscut i un pels que no.
+```{r message= FALSE, warning=FALSE}
+# apply the daisy function to calculate the dissimilarity matrix of the selected variables
+# same problem with daisy function as before. Reduce dataset 
+smaller_kmeans_df <- kmeans_df_patient_survival[1:10000,]
+disimilarity_matrix <- daisy(smaller_kmeans_df, metric = c("manhattan")) 
+
+# Generate the variables where the results obtained by each quality evaluation method will be stored.
+results_siluette <- rep(0, 10)
+
+#perform a loop to check the quality of the model obtained by the different number of clusters (from 0 to 10).
+set.seed(1)
+for (i in c(2,3,4,5,6,7,8,9,10))
+{ fit <- Kmeans(smaller_kmeans_df, centers = i , method = "manhattan", nstart = 25)
+  y_cluster <- fit$cluster
+  silhoutte_values <- silhouette(y_cluster, disimilarity_matrix)
+  results_siluette[i] <- mean(silhoutte_values[,3])
+}
+```
+
+A continuació representaré gràficament els coeficients de Silhouette mitjans obtinguts per cada algoritme K-Means segons el nre. de clústers determinats.
+```{r message= FALSE, warning=FALSE}
+plot(2:10, results_siluette[2:10],
+     type = "o",
+     col = "blue",
+     pch = 0,
+     xlab = "nº clusters", ylab = "silhouette", 
+     main = 'Average silhouette with respect to number of clusters')
+```
+
+En aquest cas, es detecta que l'algoritme K-Means que utilitza com a mètrica la distància de Manhattan obtindrà la qualitat més gran si agrupo el joc de dades en 2 clústers. Aquest fet ja s'observava en l'exercici 1; així i tot, si es compara els coeficients de Silhouette mitjans per cadascun dels exercicis, es pot observar que la diferència del coeficient assolit per 2 clústers, respecte als coeficients assolits per la resta de clústers és més gran que aquesta mateixa diferencia en l'exercici anterior.
+
+Aquesta diferència més pronunciada resulta lògica si tenim en compte que K-Means basat per distància de Manhattan no es veu tan influenciat pels valors outliers.
+
+A continuació, procediré a aplicar el nou algoritme K-Means per generar les 2 agrupacions i mostraré mitjançant representacions gràfiques els clústers aconseguits mitjançant l'agrupació de les variables de dos en dos. Posteriorment, interpretaré quina informació es pot extreure de cadascuna de les gràfiques obtingudes.
+```{r message= FALSE, warning=FALSE}
+# apply kmeans manhattan distance classification
+set.seed(1)
+patient_survival_numcluster_2 <- Kmeans(kmeans_df_patient_survival, centers = 2, method = "manhattan", nstart = 25)
+
+par(mfrow = c(1, 2))
+# kmeans classification manhattan
+plot(kmeans_df_patient_survival[c(1,2)], 
+     col = c('brown3', 'lightpink')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification manhattan")
+points(patient_survival_numcluster_2$centers, col = 1:2)
+
+legend("topleft", 
+       pch = 16, 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       col = c('brown3', 'lightpink')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_sysbp_min","d1_diasbp_min")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+
+```
+
+Si comparo la classificació per K-Means basat en la distància de Manhattan respecte a la classificació real puc observar que el clúster 2 representa els pacients que han sobreviscut a l'ingrés intrahospitalari, ja que just en aquella zona es detecta en la classificació real de forma majoritària punts corresponents a pacients vius (tenint en compte algunes excepcions). En canvi, el clúster 1 representa als pacients que han mort durant l'ingrés, pel fet que just en aquella zona és on es detecta un increment de mortalitat en la classificació real.
+
+Com era d'esperar,a escala visual sembla que hagi augmentat el nombre de punts de pacients que han mort en el clúster que identifica els pacients morts i el nombre de punts pacients que han sobreviscut en el clusters de pacients vius si ho comparo amb els respectius clústers obtinguts per aquest mateix cas en l'exercici 1.
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_heartrate_max", "d1_heartrate_min"
+par(mfrow = c(1, 2))
+
+# kmeans classification manhattan
+plot(kmeans_df_patient_survival[c(3,4)], 
+     col = c('brown3', 'lightpink')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification manhattan")
+points(patient_survival_numcluster_2$centers, col = 3:4)
+
+legend("topleft", 
+       pch = 16, 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       col = c('brown3', 'lightpink')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_heartrate_max","d1_heartrate_min")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+Per aquest cas torna a passar el mateix que ha succeit en el exercici 1. Un altre cop les dos categories es troben massa solapades entre si i per tant els clusters obtinguts per KMeans tornen a ser extremadament díficils d'interpretar. Per aquest motiu, he decidit no tenir en compte un altre cop aquesta combinació de variables per dur a terme l'analisis.
+
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_sysbp_min", "d1_heartrate_min"
+par(mfrow = c(1, 2))
+
+# kmeans classification manhattan
+plot(kmeans_df_patient_survival[c(1,3)], 
+     col = c('brown3', 'lightpink')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification manhattan")
+points(patient_survival_numcluster_2$centers, col =c(1,3))
+
+legend("topleft", 
+       pch = 16, 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       col = c('brown3', 'lightpink')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_sysbp_min","d1_heartrate_max")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(final_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+Si comparo la classificació per K-Means basat en la distància de Manhattan respecte a la classificació real puc observar que el clúster w representarà els pacients que han sobreviscut a l'ingrés intrahospitalari, ja que just en aquella zona és on majoritàriament els punts es corresponen a pacients vius (tenint en compte algunes excepcions). En canvi, el clúster 1 representarà als pacients que han mort durant l'ingrés, perquè just en aquella zona és on es detecta un increment de mortalitat en la classificació real.
+
+Un altre cop, a escala visual sembla que hagi augmentat el nombre de punts de pacients que han mort en el clúster que identifica els pacients morts i el nombre de punts pacients que han sobreviscut en el clusters de pacients vius si ho comparo amb els respectius clústers obtinguts per aquest mateix cas en l'exercici 1.
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_sysbp_min", "d1_heartrate_min"
+par(mfrow = c(1, 2))
+
+# kmeans classification manhattan
+plot(kmeans_df_patient_survival[c(1,4)], 
+     col = c('brown3', 'lightpink')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification manhattan")
+points(patient_survival_numcluster_2$centers, col =c(1,4))
+
+legend("topleft", 
+       pch = 16, 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       col = c('brown3', 'lightpink')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_sysbp_min","d1_heartrate_min")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+Un altre cop s'observa el mateix que ha passat en el cas anterior.
+Si comparo la classificació per K-Means basat en la distància de Manhattan respecte a la classificació real puc afirmar que el clúster 2 representarà els pacients que han sobreviscut a l'ingrés intrahospitalari, ja que just en aquella zona és on majoritàriament els punts es corresponen a pacients vius (tenint en compte algunes excepcions). En canvi, el clúster 1 representarà als pacients que han mort durant l'ingrés, perquè just en aquella zona és on es detecta un increment de mortalitat en la classificació real.
+
+Un altre cop, a escala visual sembla que hagi augmentat el nombre de punts de pacients que han mort en el clúster que identifica els pacients morts i el nombre de punts pacients que han sobreviscut en el clusters de pacients vius si ho comparo amb els respectius clústers obtinguts per aquest mateix cas en l'exercici 1.
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_diasbp_min ", "d1_heartrate_max"
+par(mfrow = c(1, 2))
+
+# kmeans classification manhattan
+plot(kmeans_df_patient_survival[c(2,3)], 
+     col = c('brown3', 'lightpink')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification manhattan")
+points(patient_survival_numcluster_2$centers, col =c(2,4))
+
+legend("topleft", 
+       pch = 16, 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       col = c('brown3', 'lightpink')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_diasbp_min","d1_heartrate_max")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+Un altre cop s'observa el mateix que ha passat en el cas anterior.
+Si comparo la classificació per K-Means basat en la distància de Manhattan respecte a la classificació real puc afirmar que el clúster 2 representarà els pacients que han sobreviscut a l'ingrés intrahospitalari, ja que just en aquella zona és on majoritàriament els punts es corresponen a pacients vius (tenint en compte algunes excepcions). En canvi, el clúster 1 representarà als pacients que han mort durant l'ingrés, perquè just en aquella zona és on es detecta un increment de mortalitat en la classificació real.
+
+Un altre cop, a escala visual sembla que hagi augmentat el nombre de punts de pacients que han mort en el clúster que identifica els pacients morts i el nombre de punts pacients que han sobreviscut en el clusters de pacients vius si ho comparo amb els respectius clústers obtinguts per aquest mateix cas en l'exercici 1.
+```{r message= FALSE, warning=FALSE}
+# Classification with respect to "d1_diasbp_min ", "d1_heartrate_min"
+par(mfrow = c(1, 2))
+
+# kmeans classification manhattan
+plot(kmeans_df_patient_survival[c(2,4)], 
+     col = c('brown3', 'lightpink')[as.factor(patient_survival_numcluster_2$cluster)], 
+     main = "K-Means classification manhattan")
+points(patient_survival_numcluster_2$centers, col =c(2,4))
+
+legend("topleft", 
+       pch = 16, 
+       legend = unique(patient_survival_numcluster_2$cluster), 
+       col = c('brown3', 'lightpink')[unique(patient_survival_numcluster_2$cluster)])
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_diasbp_min","d1_heartrate_min")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+Un altre cop s'observa el mateix que ha passat en el cas anterior.
+Si comparo la classificació per K-Means basat en la distància de Manhattan respecte a la classificació real puc afirmar que el clúster 2 representarà els pacients que han sobreviscut a l'ingrés intrahospitalari, ja que just en aquella zona és on majoritàriament els punts es corresponen a pacients vius (tenint en compte algunes excepcions). En canvi, el clúster 1 representarà als pacients que han mort durant l'ingrés, perquè just en aquella zona és on es detecta un increment de mortalitat en la classificació real.
+Un altre cop, a escala visual sembla que hagi augmentat el nombre de punts de pacients que han mort en el clúster que identifica els pacients morts i el nombre de punts pacients que han sobreviscut en el clusters de pacients vius si ho comparo amb els respectius clústers obtinguts per aquest mateix cas en l'exercici 1.
+
+En general després de veure les representacions anteriors puc determinar que aquest algoritme de K-Means basat en distància de Manhattan em dona els següents clústers:
++ Clúster 1: quasi la majoria de punts que es corresponen a persones que han mort durant l'ingrés hospitalari i alguns punts de persones que han sobreviscut.
++ Clúster 2: quasi la majoria de punts que es corresponen a persones que han sobreviscut durant l'ingrés hospitalari i alguns punts de persones que han mort.
+
+
+Per tant, a partir d'aquesta nova classificació si he d'elegir quin clúster necessita més atenció perquè els seus pacients presenten major possibilitat de morir, acabaré elegint el clúster 1. Igual que en l'exercici 1, resulta evident que en el clúster 1 hi haurà molts pacients que no estan en perill, però, així i tot, s'aconsegueix donar una millor cobertura mèdica de forma més eficient a un major nombre de pacients amb perill de mort que si ho fóssim per a tots els casos (on clarament es malgastarien recursos).
+
+Llavors, si el K-Means fos un mètode ideal, haguéssim obtingut que el clúster 2 sols es troben els pacients que han mort i en el clúster 1 sols hi ha pacients supervivents. A partir d'aquesta informació, determino quants registres s'han classificat de forma incorrecta mitjançant una matriu de confusió.
+```{r message= FALSE, warning=FALSE}
+precition_classification_patiensurvival <- table(reduced_df_patient_survival$hospital_death, patient_survival_numcluster_2$cluster, dnn= c("Reals","Predicted"))
+colnames(precition_classification_patiensurvival) <- c("Clúster 1", "Clúster 2")
+rownames(precition_classification_patiensurvival) <- c("0.Alive","1.Death")
+addmargins(precition_classification_patiensurvival)
+
+```
+
+Si analitzo la taula puc determinar que el percentatge d'encerts de la classificació del clúster 1 que es correspon a pacients que sobreviuran és de 77.7%. En canvi, el percentatge d'encerts de la classificació del clúster 2 el qual es correspon a pacients que moriran és de 57,8%.
+
+Si es compara el percentatge d'encerts obtinguts en aquest exercici respecte a l'exercici anterior, es pot observar que pel cas actual, per els dos clústers el percentatges d'encerts en la classificació han augmentat. En el meu cas, el que interessa és classificar correctament els pacients que moriran per tal de poder oferir una atenció especialitzada, per tant, és per aquest motiu que a l'hora de seleccionar per quina mètrica de distància l'algoritme K-Means dona uns clústers que resulten més útils, acabaré seleccionant l'algoritme K-Means basat en la mètrica de distància manhattat.
+Així i tot, considero que la predicció respecte la categoria d'interes segueix sent massa baixa com per considerar-se un model vàlid.
+
+
+### Exercici 3. Aplicació d'un model no supervisat basat en DBSCAN i OPTICS.
+
+A continuació realitzaré una clusterització del meu set de dades mitjançant la implementació dels algoritmes DBSCAN i OPTICS. Posteriorment, s'analitzarà cadascun dels clústers obtinguts i compararem el percentatge d'encerts amb els percentatges que s'han obtingut en aplicar l'algoritme K-Means.
+
+Procedim a estudiar el joc de dades. Per a portar a cap aquest estudi elegiré el parell de variables que hem utilitzat l'exercici que més clarament s'apreciava visualment en quina zona se situaven els punts de pacients que han sobreviscut i els punts dels quals no. Per tant, l'estudi es durà a terme sobre les variables "d1_diasbp_min" i "d1_heartrate_max".
+
+```{r message= FALSE, warning=FALSE}
+# let's select the two variables that I have considered most relevant
+DBSCAN_OPTICS_df_patient_survival = reduced_df_patient_survival[c("d1_diasbp_min","d1_heartrate_max")]
+
+# to apply the OPTICS algorithm, first ensure that the two selected variables are numerical
+DBSCAN_OPTICS_df_patient_survival$d1_diasbp_min <- as.numeric(DBSCAN_OPTICS_df_patient_survival$d1_diasbp_min)
+DBSCAN_OPTICS_df_patient_survival$d1_heartrate_max <- as.numeric(DBSCAN_OPTICS_df_patient_survival$d1_heartrate_max)
+
+# apply the optics algorithm with a point density with respect to the centroid of 10 and leave the parameter eps with its default value
+results_optics <- optics(DBSCAN_OPTICS_df_patient_survival, minPts = 10)
+```
+
+Un cop ordenats els punts segons la seva distància d'accessibilitat, realitzem un diagrama d'accessibilitat per procedir a la seva visualització.
+
+```{r message= FALSE, warning=FALSE}
+
+###  Accessibility chart
+plot(results_optics,
+     xlab = 'Order', ylab = 'Accessibility distance',
+     main = 'Accessibility diagram')
+```
+
+A primera vista s'observa que el gràfic d'accessibilitat resulta difícil d'interpretar.
+Parteixo de la base que l'algoritme OPTICS ordena les dades en funció de la seva distància d'accessibilitat que servirà per determinar els clústers, i que aquests clústers se situaran en zones d'elevada densitat (es veuen representats com a valls en el diagrama d'accessibilitat). Si s'analitzen les diferents representacions gràfiques de la classificació real respecte a la mortalitat dels pacients dels exercicis anteriors, es pot veure que independentment del parell de variables les dues categories es troben superposades entre si. Aquest fet provoca que a l'hora d'aplicar l'algoritme OPTICS i DBSCAN s'obtinguin uns diagrames d'accessibilitat que no permeten obtenir els clústers desitjats perquè tant els punts de persones que han sobreviscut com els punts de persones que han mort es troben en les mateixes zones d'elevada densitat.
+En definitiva, l'algoritme OPTICS i DBSCAN no és un mètode adient per aquest joc de dades.
+
+Així i tot, procediré a intentar determinar per quin valor de radis de veïnat (eps_cl) es pot assolir clústers el màxim de similars a la classificació real.
+
+Primer apliquem una eps_cl = 0.04
+```{r message= FALSE, warning=FALSE}
+# Extraction of a DBSCAN clustering by carving the accessibility with the value eps_cl
+results_optics_filter_004 <- extractDBSCAN(results_optics, eps_cl = 0.04)
+results_optics_filter_004
+###  Accessibility chart
+plot(results_optics_filter_004,
+     xlab = 'Order', ylab = 'Accessibility distance',
+     main =  'Accessibility diagram eps_cl = 0.04') 
+
+## black is noise
+## colors are identified clusters
+```
+
+Per a una eps_cl=0.04 es formen 2 clústers. Un clúster principal que englobarà la zona central de major densitat del joc de dades el qual tindrà tant els punts de persones que han sobreviscut l'ingrés hospitalari com els punts de les persones que han mort i ub clúster secundaris molt petit que contindran alguns punts outliers.
+
+Representació dels clústers obtinguts:
+```{r message= FALSE, warning=FALSE}
+par(mfrow = c(1, 2))
+#OPTICS CLASSIFICATION
+hullplot(DBSCAN_OPTICS_df_patient_survival, results_optics_filter_004, 
+         main = 'Classification by DBSCAN and OPTICS')
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_diasbp_min","d1_heartrate_max")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+Si comparem els dos clústers obtinguts, es confirma que el clúster vermell engloba la majoria de casos de pacients que han mort i que han sobreviscut, i que el altre clústers agafa uns pocs punts puntuals que pertanyen a la classe de pacients que han mort.
+
+Òbviament, els resultats assolits en aquest cas no resulten útils, ja que no es pot extreure cap mena d'informació que ens permeti focalitzar-nos en un sector de pacients que necessitin una major atenció mèdica.
+
+Procedim a aplicar l'algoritme DBSCAN i OPTICS per un radi de veïnat menor, eps_cl = 0.03
+
+```{r message= FALSE, warning=FALSE}
+# Extraction of a DBSCAN clustering by carving the accessibility with the value eps_cl
+results_optics_filter_003 <- extractDBSCAN(results_optics, eps_cl = 0.03)
+results_optics_filter_003
+###  Accessibility chart
+plot(results_optics_filter_003,
+     xlab = 'Order', ylab = 'Accessibility distance',
+     main =  'Accessibility diagram eps_cl = 0.03') 
+
+## black is noise
+## colors are identified clusters
+```
+
+Per aquest nou valor d'eps_cl es formen un total de 8 clústers, un clúster principal que englobarà la densitat més gran del joc de dades amb els punts de persones que han sobreviscut l'ingrés hospitalari i persones que han mort, juntament amb la resta clústers secundaris que contindran punts que no es troben en la part de major densitat.
+
+Representació dels clústers obtinguts:
+```{r message= FALSE, warning=FALSE}
+par(mfrow = c(1, 2))
+#OPTICS CLASSIFICATION
+hullplot(DBSCAN_OPTICS_df_patient_survival, results_optics_filter_003, 
+         main = 'Classification by DBSCAN and OPTICS')
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_diasbp_min","d1_heartrate_max")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+Si tinc en compte tots els clústers obtinguts, es pot veure el clúster principal (vermell) consta d'un nombre de punts extremadament elevat respecte la resta de clústers, els quals pertanyeran tant a pacients que han mort com a pacients que han sobreviscut. La resta de clústers que es detecten ja comencen a ser d'un tipus específic.
++ Clúster groc: pacients supervivents
++ Clúster blau clar: pacients supervivents
++ Clúster gris: pacients supervivents
++ Clúster verd: pacients supervivents
++ Clúster blau fosc: barreja de pacients supervivents i pacients morts
+
+El que puc detectar és que a mesura que es redueix el valor d'eps_cl, també disminuirà el clúster principal vermell. És obvi que en aquest cas no s'assolirà dos clústers ben definits com jo volia. Però sí que es podria buscar per quin valor d'eps_cl tenim un clúster principal vermell que sols agrupi dins del que cap als pacients que han sobreviscut i així podem classificar la resta de punts com a pacients que han mort. (Òbviament, aquesta idea no l'aplicaria si tingués un joc de dades adequat per dur a terme aquest algoritme)
+
+A continuació determinaré el valor d'eps_cl que em permetrà seleccionar la zona de punts de major densitat, que just coincideix en zona majoritària de pacients que han sobreviscut que és on el punt central se situa en el (0.3,0.5) de la gràfica de classificació real.
+```{r message= FALSE, warning=FALSE}
+# Extraction of a DBSCAN clustering by carving the accessibility with the value eps_cl
+results_optics_filter_0013 <- extractDBSCAN(results_optics, eps_cl = 0.013)
+results_optics_filter_0013
+###  Accessibility chart
+plot(results_optics_filter_0013,
+     xlab = 'Order', ylab = 'Accessibility distance',
+     main =  'Accessibility diagram eps_cl = 0.013') 
+
+## black is noise
+## colors are identified clusters
+```
+
+Per aquest nou valor d'eps_cl es formen un total de 83 clústers. En aquest cas,el clúster principal que té aproximadament 12267 punts. A continuació estudiaré si aquest clúster està format majoritàriament de punts corresponents a persones que han sobreviscut a l'ingrés.
+
+A continuació realitzaré una inspecció visual:
+```{r message= FALSE, warning=FALSE}
+par(mfrow = c(1, 2))
+#OPTICS CLASSIFICATION
+hullplot(DBSCAN_OPTICS_df_patient_survival, results_optics_filter_0013, 
+         main = 'Classification by DBSCAN and OPTICS')
+
+# Real classification
+plot(reduced_df_patient_survival[c("d1_diasbp_min","d1_heartrate_max")],
+      col = c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)], 
+     main = "Real classification")
+
+legend("topleft", 
+       legend = unique(reduced_df_patient_survival$hospital_death), 
+       pch = 16,
+       col = unique(c('lightpink', 'brown3')[as.factor(reduced_df_patient_survival$hospital_death)]))
+```
+
+De primeres sembla que el clúster més gran està majoritàriament format de punts que es corresponen a pacients que han sobreviscut. Per tant, una possible aplicació dels resultats obtinguts mitjançant OPTICS i DBSCAN seria identificar quins pacients encaixen dins de les característiques del clúster vermell gran per tal de no haver de gastar tants recursos mèdics amb ells, ja que no estaran tan en perill com els pacients que es troben fora del clúster.
+
+Si ens guiem amb aquesta finalitat, calcularé el nombre d'encerts respecte a pacients sans en aquest clúster.
+```{r message= FALSE, warning=FALSE}
+prediction_dbscan_optics = table(reduced_df_patient_survival$hospital_death,results_optics_filter_0013$cluster, dnn= c("Reals","Predicted"))
+rownames(prediction_dbscan_optics) <- c("0.Alive","1.Death")
+addmargins(prediction_dbscan_optics)
+```
+
+Podem veure que el clúster 1 és el que es correspon al clúster de major dimensió i presenta un total de 8034 punts corresponents a pacients que han sobreviscut i 4233 pacients que han mort. Per tant, és un clúster que conté un 80,3% dels pacients que han sobreviscut i un 69.3% de pacients que han mort. En conseqüència, si volem calcular el percentatge de pacients supervivents correctament classificats en el clúster gran (clúster 1) veurem que té una precisió d'encert del 65.5%
+
+Si analitzem els resultats, veiem que la hipòtesi que tenia de poder descartar els pacients que se situïn en aquest clúster de major dimensió no es pot aplicar, ja que més de la meitat del nombre total de pacients que han mort estan dins d'aquest mateix clúster.
+
+Per tant, queda confirmat que l'algoritme OPTICS i DBSCAN no resulta gens útil pel nostre joc de dades.
+
+Finalment, si he d'elegir quina de les classificacions obtingudes mitjançant models no supervisats presenta una major qualitat, em quedaré amb les classificacions obtingudes aplicant l'algoritme K-Means basat en la distància euclidiana. Això és pel fet que és l'algoritme que presenta el percentatge més gran d'encerts respecte a l'agrupament de pacients que han mort.
+
+
+### Exercici 4. Aplicació d'un model supervisat: Arbre de decisió.
+
+A continuació es desenvoluparà un arbre de decisió per tal de poder generar un algoritme supervisat que permeti predir per quines característiques el pacient sobreviurà o no a l'ingrés hospitalari.
+
+En aquest cas treballaré amb la majoria de les variables del meu joc de dades per tal d'obtenir un arbre de decisió el més precís possible. Les úniques variables que no utilitzaré són les que vaig discretitzar mitjançant K-Means en la pràctica 1, ja que el model d'arbre de decisió de la llibreria C5.0 sols accepta valors categòrics i numèrics, i com aquestes variables són rangs de valors dona error. Així i tot, no fer ús d'aquestes variables no afectarà gaire als resultats assolits, pel fet que s'implementarà la versió numèrica d'aquestes (per tant, no es perd informació).
+
+Procedim a generar els jocs de dades d'entrenament i de prova per tal de dur a terme el primer arbre de decisió.
+```{r}
+#separate the variable to be predicted from the rest of the data set.
+y <- reduced_df_patient_survival[,27] 
+# the other variables used for the prediction
+X <- reduced_df_patient_survival[,-27]
+X <- X[,c("age","bmi", "BMI_weight_indicator",
+          "ethnicity","gender","d1_diasbp_max","d1_diasbp_min",
+          "d1_heartrate_max","d1_heartrate_min","d1_spo2_max",
+          "d1_sysbp_max","d1_sysbp_min","d1_temp_min",
+          "d1_glucose_max","d1_glucose_min","d1_potassium_max",
+          "d1_potassium_min","cirrhosis","lymphoma",
+          "leukemia","aids","immunosuppression",
+          "hepatic_failure","solid_tumor_with_metastasis","diabetes_mellitus")]
+
+#set test and training data sets
+set.seed(1)
+actual_data_dimension <- as.data.frame(cbind(X,y))
+split_prop <- 3 
+indexes = sample(1:nrow(actual_data_dimension), size=floor(((split_prop-1)/split_prop)*nrow(actual_data_dimension)))
+trainX<-X[indexes,]
+trainy<-y[indexes]
+testX<-X[-indexes,]
+testy<-y[-indexes]
+
+#information of the variable to predict
+testy<- as.factor(testy)
+trainy<- as.factor(trainy)
+
+#information of the variable to predict
+print("information of predicted variable in test ")
+summary(testy)
+print("information of predicted variable in train")
+summary(trainy) 
+
+#factorize the variables used for prediction
+list_index = list(3,4,5,18,19,20,21,22,23,24,25)
+for (i in list_index) {
+ testX[,i]<- as.factor(testX[,i])
+ trainX[,i]<- as.factor(trainX[,i])
+}
+
+#information of the variables used for prediction
+print("information of the variables from test")
+summary(testX)
+print("information of the variables from test")
+summary(trainX)
+```
+
+Si s'analitzen ara les diferents variables que formen el joc de dades, es detecta que no estan esbiaixades les variables de ningun dels tests, per tant, obtindrem unes prediccions mitjançant arbres de decisió precises.
+
+A continuació executem l'arbre de decisió tenint en compte totes del joc de dades.
+```{r}
+# first decision tree
+model_without_adaptation <- C50::C5.0(trainX, trainy, rules=TRUE )
+summary(model_without_adaptation)
+```
+
+Com ja era d'esperar, davant el gran nombre de variables que té el joc de dades s'ha obtingut un arbre de decisió que té un total de 61 regles.
+Cadascuna de les regles establertes tenen un percentatge de fiabilitat diferent. A continuació mencionaré les 2 regles  que són més importants per cadascuna de les categories.
+
++ **CATEGORIA: 0.ALIVE"**
+
++ **Regla nº1** : age <= 52, d1_heartrate_max <= 0.4201681 and d1_temp_min > 0.6785654 -> class 0. Alive 
+
+Aquesta regla s'aplica a pacients d'edat major o igual a 52. I que a més a més durant les primeres 24 hores han tingut una freqüència cardíaca màxima major o igual 0.4201681 i una temperatura mínima major a 0.6785654 Aquests pacients presenten un 91.3% de probabilitat de sobreviure a l'ingrés hospitalari.
+
++ **Regla nº2** : age <= 57, d1_heartrate_min <= 0.4712644, d1_sysbp_min > 0.3529412, d1_temp_min > 0.6113754  and hepatic_failure = 0 -> class 0. Alive 
+
+Aquesta regla s'aplica a pacients d'edat menor o igual a 57 que no tenen fallo hepàtic. I que a més a més durant les primeres 24 hores han tingut una pressió cardíaca sistòlica mínima major a 0.3529412 i una temperatura mínima major a 0.6113754 i una freqüència cardíaca mínima menor o igual 0.4712644 Aquests pacients presenten un 91% de probabilitat de sobreviure a l'ingrés hospitalari.
+
++ **CATEGORIA: 1. DEATH"**
+
++ **Regla nº10** : d1_heartrate_min <= 0.2183908, d1_sysbp_min <= 0.3529412 and d1_temp_min <= 0.7039418 -> class 1. Death
+
+Aquesta regla s'aplica a pacients que durant les primeres 24 hores han tingut una pressió cardíaca sistòlica mínima menor o igual a 0.3529412, una freqüència cardíaca mínima menor o igual a 0.2183908 i una temperatura mínima menor o igual a 0.7039418 Aquests pacients presenten un 98.2% de probabilitat de morir durant l'ingrés hospitalari.
+
++ **Regla nº11** :d1_sysbp_min > 0.3529412 , ethnicity = Other/Unknown and d1_temp_min <= 0.6113754 -> class 1. Death
+
+Aquesta regla s'aplica a pacients amb obesitat d'ètnia desconeguda. I que a més a més durant les primeres 24 hores han tingut una pressió cardíaca sistòlica mínima major a 0.3529412 i una temperatura mínima menor o igual a 0.6113754. Aquests pacients presenten un 96.7% de probabilitat de morir durant l'ingrés hospitalari.
+
+A continuació representaré esquemàticament l'arbre de decisió.
+```{r}
+#plot decision tree
+model_without_adaptation <- C50::C5.0(trainX, trainy)
+plot(model_without_adaptation, gp = gpar(fontsize = 7.5))
+```
+
+Si calculo la precisió de l'arbre obtindre el següent resultat.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+predicted_model <- predict( model_without_adaptation, testX, type="class" )
+print(sprintf("La precisió de l'arbre de decisió inicial és de: %.4f %%",100*sum(predicted_model == testy) / length(predicted_model)))
+```
+
+Per ara obtenim una precisió del 73.5990% el qual és un bon valor. Tot i això, un bon valor de precisió general de l'arbre de decisió no indica que significa que sigui un bon arbre per predir quan un pacient té probabilitat de morir. Per fer aquest anàlisis cal realitzar la matriu de confusió.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#confusion matrix
+mat_conf<-table(testy,Predicted=predicted_model, dnn= c("Reals","Predicted"))
+colnames(mat_conf) <- c("0.Alive", "1.Death")
+rownames(mat_conf) <- c("0.Alive","1.Death")
+mat_conf
+```
+
+Si s'analitzen els resultats de la matriu es pot observar com aquest arbre de decisió presenta un percentatge d'encerts respecte a la predicció de pacients que han sobreviscut del 75.7% i un percentatge d'encerts respecte a la predicció de pacients que han mort d'un 68.6%. En el nostre cas ens interessa predir de la millor forma possible els casos en que els pacients morirà. Per tant, aquest no es un algoritme que es pugui considerar valid.
+
+A continuació, elaboraré un arbre de decisió que resultarà de fer un "adaptative boosting" de l'arbre de decisió anterior. Bàsicament, es farà 80 models d'arbre de decisió i es combinaran per crear un arbre de decisió definitiu més precís. D'aquesta manera es pot eliminar el possible overfitting de les variables i obtenir un arbre de decisió de major qualitat els pacients que han mort.
+```{r}
+# adaptative boost tree
+modelo2 <- C50::C5.0(trainX, trainy, trials =80)
+plot(modelo2,gp = gpar(fontsize = 7.5))
+```
+
+Podem observar que la representació esquemàtica de l'arbre de decisió és diferent de l'obtinguda anteriorment.
+
+Seguidament, avaluo la precisió del nou arbre generat.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#new decision tree accuracy
+predicted_model2 <- predict( modelo2, testX, type="class" )
+print(sprintf("La precisió de l'arbre és de: %.4f %%",100*sum(predicted_model2 == testy) / length(predicted_model2)))
+```
+
+Es detecta que la precisió del nou arbre de decisió ha augmentat un 4,4312% respecte a l'arbre anterior.
+
+Procedeixo a estudiar la matriu de confusió obtinguda pel nou cas.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#confusion matrix
+mat_conf<-table(testy,Predicted=predicted_model2, dnn= c("Reals","Predicted"))
+colnames(mat_conf) <- c("0.Alive", "1.Death")
+rownames(mat_conf) <- c("0.Alive","1.Death")
+mat_conf
+```
+
+Si s'analitzen els resultats de la matriu per aquest nou cas, es pot observar com aquest arbre de decisió presenta un percentatge d'encerts respecte a la predicció de pacients que han sobreviscut del 80.5% i un percentatge d'encerts respecte a la predicció de pacients que han mort d'un 73.05%. Per les dues categories s'obté una millora considerable dels percentatges d'encerts. Per tant, si s'ha d'elegir un dels dos arbres generats per tal de predir de la millor forma possible els pacients que han mort ens quedarem amb aquest últim arbre de decisió assolit. A més a més, el percentatge d'encerts aconseguit per la categoria d'interès el fa un algoritme vàlid per a predir en quins casos el pacient té perill de morir.
+
+També, si comparem el percentatge de predicció aconseguit dels pacients que han mort per aquest arbre de decisió amb 'adaptative boosting' respecte als percentatges aconseguits d'aquest mateix en el cas de mètodes no supervisats, resulta clar que els percentatges d'encerts de predicció d'aquest arbre són molt millors que els percentatges de predicció obtinguts per qualsevol dels models no supervisats. Per tant, per ara, el millor algoritme desenvolupat per a la predicció de la mortalitat dels pacients del joc de dades és l'arbre de decisió amb adaptative boosting.
+
+### Exercici 5. Aplicació d'un model supervisat diferent: Random Forest.
+
+Tot seguit es desenvoluparà un Random Forest per tal de generar un nou algoritme supervisat diferent del que s'ha dut a terme anteriorment.
+Com és d'esperar, l'objectiu de dur a terme aquest algoritme serà poder predir per quins casos els pacients sobreviuen l'ingrés hospitalari i per quins no (és a dir, el mateix objectiu que en tots els exercicis anteriors).
+Un Random Forest és un conjunt assemblat d'arbres de decisió combinats amb bagging. En usar bagging, cadascun dels diferents arbres veuran porcions diferents de les dades d'entrenament i de les variables. Finalment es combinen els resultats obtinguts.
+
+Per aquest cas, és important tenir el mateix conjunt de registres per a poder fer una comparació dels algoritmes no supervisats vàlida, ja que presentaran quasi les mateixes condicions (potser varia un xic el conjunt d'entrenament).
+
+```{r}
+#select the specific variables
+prova <- reduced_df_patient_survival[,c("age","bmi","BMI_weight_indicator",
+          "ethnicity","gender","d1_diasbp_max","d1_diasbp_min",
+          "d1_heartrate_max","d1_heartrate_min","d1_spo2_max",
+          "d1_sysbp_max","d1_sysbp_min","d1_temp_min",
+          "d1_glucose_max","d1_glucose_min","d1_potassium_max",
+          "d1_potassium_min","cirrhosis","lymphoma",
+          "leukemia","aids","immunosuppression",
+          "hepatic_failure","solid_tumor_with_metastasis","diabetes_mellitus",
+          "hospital_death")]
+
+#expressem hospital death com factor
+prova$hospital_death<- as.factor(prova$hospital_death)
+
+#dividim el set
+set.seed(1)
+training_values <- createDataPartition(prova$hospital_death, p=0.7, list=F)
+```
+
+Un cop ja he obtingut el conjunt d'entrenament i el conjunt de test, executo l'algoritme Random Forest.
+```{r}
+#implementem el rando forest set peque de dades
+mod = randomForest(x = prova[training_values,1:25], y = prova[training_values,26], ntree=500, keep.forest = TRUE)
+mod
+```
+
+Si observo com és el model obtingut, puc observar que s'ha generat un Random forest de 500 arbres, on per cada una de les particions s'ha aplicat 5 variables i amb les variables d'entrenament s'ha detectat una taxa d'error del 22.24%.
+
+A continuació analitzo quines variables s'han utilitzat més:
+```{r}
+varImpPlot(mod) 
+```
+
+Podem veure que les variables més importants són les "d1_sysbp_mi", "d1_diasp_min" i "d1_temp_min". Si ens fixem són també les 3 variables més utilitzades durant la creació d'un sol arbre de decisió. Com ja hem dit abans un Random Forest no és més que un algoritme que està basat en arbres de decisió, per tant, resulta lògic que si en l'arbre de decisió inicial s'emprava molt aquestes 3 variables, doncs que en el Random Forest també passi.
+
+El següent pas s'aplicarà el model generat a les variables de test i s'extraurà quina precisió té.
+```{r}
+prediction_model = predict(mod,prova[-training_values,] )
+print(sprintf("La precisió del random forest obtingut és de: %.4f %%",100*sum(prediction_model == prova[-training_values,26]) / length(prediction_model)))
+```
+
+Per ara la precisió resulta bona, encarà que és menor per 0.7076% respecte a la precisió obtinguda en l'arbre de decisió que s'ha acabat elegint en l'exercici 4. Seguidament, estudiaré la matriu de confusió resultant.
+```{r}
+matrix_confusion = table(prova[-training_values,"hospital_death"],prediction_model, dnn= c("Reals","Predicted"))
+colnames(matrix_confusion) <- c("0.Alive", "1.Death")
+rownames(matrix_confusion) <- c("0.Alive","1.Death")
+matrix_confusion
+```
+
+Si s'analitzen els resultats de la matriu per aquest nou cas, es pot observar com per l'algoritme Random Forest aplicat tenim un percentatge d'encerts respecte a la predicció de pacients que han sobreviscut del 79.6% i un percentatge d'encerts respecte a la predicció de pacients que han mort d'un 72.7%. Es pot veure que les dues prediccions són molt bones, per tant, es pot considerar un model vàlid per a predicció en el meu joc de dades.
+
+Si comparem la matriu de confusió obtinguda utilitzant el Random Forest respecte a les matrius de confusió que s'han obtingut en aplicar els diferents arbres de decisió podem observar que:
+
++ La qualitat de la probabilitat d'encert de predir els pacients que han mort del Random Forest respecte a la de l'arbre de decisió amb adaptative boosting, és menor. Puc veure que l'arbre de decisió amb adaptative boosting presenta un 73.05% d'encerts de pacients morts, mentre que el Random Forest té un 72.7% d'encerts de pacients morts. Encara que la diferència sigui petita, si s'ha d'elegir un dels dos algoritmes respecte a la qualitat de la predicció de la categoria que realment importa, doncs em quedaré amb l'arbre de decisió amb adaptative boosting.
+
++ La qualitat de la probabilitat d'encert de predir els pacients que han mort del Random Forest respecte a la de l'arbre de decisió inicial, és major. Puc veure que l'arbre de decisió amb adaptative boosting presenta un 68,6% d'encerts de pacients morts, mentre que el Random Forest té un 72,7% d'encerts de pacients morts. En aquest cas la diferència de percentatges resulta més evident, per tant, si s'ha d'elegir un dels dos algoritmes respecte a la qualitat de la predicció de la categoria que realment importa, doncs em quedaré amb el Random Forest.
+
+En definitiva, he desenvolupat 3 algoritmes de models supervisats i el que presenta major qualitat respecte a la variable que resulta d'interès (pacients morts) és l'arbre de decisió amb adaptative boosting. Per tant, el millor algoritme supervisat a elegir pel meu conjunt de dades és aquest.
+
+
+### Exercici 6. Limitacions del dataset seleccionat i riscos per al cas d'ús.
+
+En aquesta pràctica es va treballar amb un gran conjunt de dades que tenia 91.713 registres i 87 variables. Aquestes dades eren difícils de gestionar i analitzar, per això es va decidir reduir les dimensions del conjunt de dades inicialment, mantenint només les variables relacionades amb la informació personal del pacient, malalties prèvies, mesures realitzades en els pacients les primeres 24 hores i si el pacient havia mort o no. Aquest filtratge va fer que es passessin de 87 variables a només 32.
+
+Després d'aquesta reducció de dimensions, es va fer una exploració del conjunt de dades per determinar quines variables eren les més importants per predir si un pacient moriria o no i es van eliminar les dades que no aportaven informació rellevant. Finalment, es va obtenir un conjunt de dades definitiu amb 79310 registres i 31 variables.
+
+Malgrat haver reduït les dimensions del conjunt de dades, encara hi ha riscos amb relació a la predicció de la mortalitat intrahospitalària dels pacients mitjançant models supervisats i no supervisats. Ja que el conjunt de dades es troba esbiaixat, per tant, ha resultat necessari reduir de forma significativa el nombre d'observacions per pacients que han sobreviscut, per tal d'obtenir algoritmes que fessin prediccions coherents. Això implica perdre informació valuosa per predir pacients supervivents, però una millora en la predicció de la mortalitat.
+
+A continuació, es detallen les limitacions trobades per cada exercici:
+
++ L'algoritme K-Means basat en distància Euclidiana: El mètode K-Means és un algorisme de classificació que crea un nombre K de grups (especifiquem el nombre K) de manera que totes les observacions del conjunt de dades formen part d'algun grup. En aquest cas, es determina que cada observació anirà al grup al qual la distància Euclidiana entre aquesta observació i el centre del grup sigui menor. Aquest fet esdevé limitant en el nostre conjunt de dades, ja que tant les observacions dels pacients que han mort com les dels pacients que han sobreviscut es troben superposades (no es troben en valors específics diferents), per tant, quan es generen els grups, mai es podrà obtenir dos grups que continguin només les observacions dels pacients que han mort i l'altre només les observacions dels pacients que han sobreviscut.
+
++ L'algoritme K-Means basat en distància Manhattan: funciona igual que el descrit anteriorment, però en aquest cas s'utilitza la distància de Manhattan en lloc de la distància Euclidià. Aquesta distància és menys sensible a valors que podrien ser considerats outliers. En aquest cas específic, el joc de dades estarà limitat però no tant com en el cas anterior, ja que la categoria important de predir (pacients morts) té molts valors dispersos lluny de la zona de major mortalitat i en aquest cas no influenciarà al clúster (per tant, no es veurà arrestat cap a la zona d'increment de pacients que han sobreviscut).
+
++ L'algoritme DBSCAN i OPTICS: aquests algoritmes directament no proporcionen resultats útils en aquest cas. Tant DBSCAN i identifiquen les zones amb més densitat d'observacions per formar els clústers. Per tant, en aquest cas el joc de dades està molt limitat ja que les dos categories a predir es troben extremadament superposades.
+
++ L'algoritme Arbre de decisió (normal): aquest algoritme es basa a dividir el conjunt de dades en subconjunts cada vegada més petits fins a trobar les característiques que permeten establir una categoria específica. En el meu joc de dades veurem limitacions, ja que les dades es troben superposades i, per tant, costarà establir unes regles que siguin el 100% certes.
+
++ L'algoritme Arbre de decisió (adaptative boosting): en aquest cas l'algoritme que fa mitjana de diferents arbres de decisió generats, per tant, tindrà els mateixos riscos que l'arbre de decisió normal.
+
++ Random Forest: mitjana d'un conjunt d'arbres de decisió on cada arbre utilitza una porció diferent del conjunt de dades i variables per crear els diferents grups d'arbres, i finalment es combinen els resultats obtinguts. Això tindrà els mateixos riscos que un arbre de decisió normal. A més, en aquest cas, el conjunt de dades encara que s'hagi reduït continua sent gran i se sap que generar un Random Forest té un cost computacional significatiu, per tant, si l'ordinador no té suficient memoria, es pot col·lapsar el programa.
+
+### Exercici 7. Resultats obtinguts per cada fase dels modelatge.
+
+A continuació exposaré els resultats obtinguts en cada exercici.
+
++ L'algoritme K-Means basat en distància Euclidiana:
+Com ja s'ha mencionat anteriorment el joc de dades presenta les dues categories que volem agrupar en els dos clústers bastant superposats, fet que implica que sigui físicament impossible obtenir dos clústers que continguin sols valors de cada tipus de categoria.
+Per poder evitar aquesta barreja i assolir dos clústers tan homogenis com sigui possible s'han seleccionat les variables que eren més rellevants per la predicció de la mortalitat dels pacients que es van establir en la pràctica 1 en l'apartat d'anàlisis de components principals.
+Aquesta selecció de variables ha permès aconseguir una clusterització amb un percentatge d'encert de pacients que han mort del 57,39%. Per tant, és un algoritme que no és vàlid pel tipus de prediccions que volem extreure del joc de dades.
+
++ L'algoritme K-Means basat en distància Manhattan:
+En aquest cas, s'ha fet servir el mateix filtratge de les variables que en el K-Means per distància Euclidiana. La clusterització obtinguda és millor que abans, amb un percentatge d'encert del 57,8% per pacients que han mort. Tanmateix, continua sent un percentatge d'encert de la predicció insuficient, per tant, no és un algoritme vàlid. 
+
++ L'algoritme DBSCAN i OPTICS:
+Com s'ha exposat anteriorment els resultats aconseguits a partir dels clústers d'aquest algoritme tenen una qualitat pèssima. A més, a causa de les dimensions elevades del joc de dades, s'ha hagut de filtrar les dades per poder aplicar l'algoritme sense que la màquina es col·lapsés. Per poder extreure una mínima informació útil, s'ha reenfocat l'ús dels clústers per identificar un clúster central que contingui majoritàriament observacions de pacients que han sobreviscut i que contingui gairebé cap valor de pacients que han mort, per tal de poder classificar els pacients d'aquest clúster com a no urgents. Malgrat això, no ha sigut possible, ja que el clúster totalitari de pacients supervivents obtingut, conté més de la meitat de les observacions de pacients que han mort, per tant, no és útil. Aquest algoritme és el de pitjor qualitat que he realitzat.
+
++ L'algoritme Arbre de decisió (normal):
+Per dur a terme aquest algoritme, s'ha treballat amb totes les variables excepte les discretitzades per K-Means de la pràctica 1, ja que l'algoritme només funciona amb variables categòriques i numèriques, i les variables discretitzades són rangs de valors. Així i tot, eliminar aquestes variables no ha suposat una pèrdua d'informació, pel fet que he conservat les variables numèriques originals equivalents.
+Com a resultat s'ha obtingut un algoritme que prediu adequadament la mortalitat dels pacients de fins al 68,6%. Es pot observar que la predicció és més bona que qualsevol de les prediccions aconseguides amb models no supervisats, però continua sent un model invàlid. S'ha provat de disminuir el nombre de variables utilitzades per veure si era un fenomen d'overfitting, però s'ha acabat descartant el procés perquè els resultats empitjoraven.
+
++ L'algoritme Arbre de decisió (adaptative boosting):
+Per aquest cas, s'ha fet la mateixa reducció de variables del joc de dades pel mateix motiu especificat en el cas anterior. Com a resultat s'ha obtingut un algoritme que prediu adequadament la mortalitat dels pacients de fins al 73.05%. Es pot veure que es tracta de la millor qualitat assolida respecte a aquest paràmetre i a més és prou bona perquè es pugui considerar un model vàlid per a predir la mortalitat dels pacients. És observable que els dos percentatges aconseguits són millors que en el cas de l'arbre de decisió normal. Això és a causa del fet que, com es fa la mitjana dels resultats de molts arbres de decisions, es compensen alguns errors.
+
++ Random forest: 
+Per aquest cas, s’ha fet la mateixa reducció de variables del joc de dades pel mateix motiu que el especificat en el cas d’arbres de decisió normal i també per evitar que el ordenador es quedi sense memòria ja que és un algoritme que requereix una potencia computacional elevada. 
+Com a resultat s’ha obtingut un algoritme que prediu de forma adequada la mortalitat dels pacients de fins el 72,7%. Es pot observar que la predicció es suficienment bona com per considerar-la un model vàlid, encara que l'arbre de decisió amb adaptative boosting presenta uns percentatges d'encert més elevats.
+
+En definitiva, el joc de dades funciona de la millor manera amb algoritmes no supervisats i funciona pitjor amb algoritmes no supervisats (en específic l'algoritme DBSCAN i OPTICS). Això és a causa que els algoritmes no supervisats aplicats es basen en la clusterització i pel meu joc de dades les dues categories a classificar es troben massa superposades per a poder generar models vàlids.
+Respecte a l'aplicació de models supervisats, el millor algoritme per la predicció del joc de dades i que serà l'algoritme amb major qualitat de tota l'entrega és l'arbre de decisió amb adaptative boosting.
+
+******
+# Bibliografia
+******
++ Statistics Globe [en línia] [consulta: 9 de desembre de 2022]. Disponible a: https://statisticsglobe.com/replace-missing-values-by-column-mean-in-r
++ CodingProf [en línia] [consulta: 9 de desembre de 2022]. Disponible a: https://www.codingprof.com/how-to-replace-nas-with-the-mean-in-r-examples/
++ Stack Overflow [en línia] [consulta: 9 de desembre de 2022]. Disponible a: https://stackoverflow.com/questions/9126840/delete-rows-with-blank-values-in-one-particular-column
++ Stack Overflow [en línia] [consulta: 9 de desembre de 2022]. Disponible a: https://stackoverflow.com/questions/9126840/delete-rows-with-blank-values-in-one-particular-column
++ STHDA Statistical tools for high-throughput data analysis[en línia] [consulta: 11 de desembre de 2022]. Disponible a: http://www.sthda.com/english/wiki/ggplot2-histogram-plot-quick-start-guide-r-software-and-data-visualization#basic-histogram-plots
++ The Texas Hearth Institute[en línia] [consulta: 11 de desembre de 2022]. Disponible a: https://www.texasheart.org/heart-health/heart-information-center/topics/calculadora-del-indice-de-masa-corporal-imc/
++ STHDA Statistical tools for high-throughput data analysis[en línia] [consulta: 12 de desembre de 2022]. Disponible a: http://www.sthda.com/english/wiki/eigenvalues-quick-data-visualization-with-factoextra-r-software-and-data-mining
+-data-visualization#basic-histogram-plots
++ BookDown[en línia] [consulta: 13 de desembre de 2022]. Disponible a: https://bookdown.org/jboscomendoza/r-principiantes4/if-else.html
++ UC Business Analytics R Programming Guide [en línia] [consulta: 22 de gener de 2023]. Disponible a: https://uc-r.github.io/kmeans_clustering
++ LUCAS, Antoine. AMAP PACKAGE [en línia] 27 octubre 2022 [consulta: 22 de gener de 2023]. Disponible a: https://rdrr.io/cran/amap/f/inst/doc/amap.pdf
++ Stack Exchange [en línia] [consulta: 22 de gener de 2023]. Disponible a: https://stats.stackexchange.com/questions/145192/what-is-the-benefit-of-using-manhattan-distance-for-k-medoid-than-using-euclidea
++ Juan Gabriel Gomila. 23 - La técnica de Random Forest en RStudio[vídeo en línia] 2019 [consulta: 24 de gener de 2023]. Disponible a: https://www.youtube.com/watch?v=HJB6XFkmezM
++ HACKERNOON [en línia] [consulta: 24 de gener de 2023]. Disponible a: https://hackernoon.com/random-forest-regression-in-r-code-and-interpretation
++ BOOKDOWN[en línia] [consulta: 24 de gener de 2023]. Disponible a: https://bookdown.org/content/2031/ensambladores-random-forest-parte-i.html
++ IArtificial.net[en línia] [consulta: 24 de gener de 2023]. Disponible a:https://www.iartificial.net/random-forest-bosque-aleatorio/
+
+
+
+
+
